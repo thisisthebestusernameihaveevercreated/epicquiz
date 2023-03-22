@@ -1,18 +1,54 @@
 import tkinter
 
 
-class StartScreen():
+class TkObject:
+    def __init__(self, object):
+        self.object = object
+        self.object.pack()
+
+        self.parent = None
+
+        self.children = []
+
+    def set_parent(self, parent):
+        if self.parent:
+            if self in parent.children:
+                parent.children.remove(self)
+
+        if parent:
+            self.parent = parent
+
+            parent.children.append(self)
+
+        return self
+
+    def set_visible(self, visible):
+        if visible:
+            self.object.pack()
+        else:
+            self.object.pack_forget()
+
+        for child in self.children:
+            child.set_visible(visible)
+
+        return self
+
+    def after(self, time_ms, function):
+        return self.object.after(time_ms, function)
+
+
+class StartScreen:
     def __init__(self, gui, window):
         self.gui = gui
         self.window = window
 
-        self.top_label = tkinter.Label(text="the epic quiz", font="{Consolas} 32")
-        self.top_label.pack()
+        self.screen = TkObject(tkinter.Frame())
+
+        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32")).set_parent(self.screen)
 
         self.play_button_text = tkinter.StringVar(None, "Play the quiz")
 
-        self.play_button = tkinter.Button(textvariable=self.play_button_text, command=self.play_game)
-        self.play_button.pack()
+        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game)).set_parent(self.screen)
 
     def play_game(self):
         if self.gui.playing:
@@ -22,12 +58,12 @@ class StartScreen():
 
         self.play_button_text.set("Loading the quiz...")
 
-        self.top_label.after(1000, lambda: self.play_button.pack_forget())
+        print("Loading quiz...")
 
-        self.top_label.after(2000, lambda: self.top_label.pack_forget())
+        self.screen.after(1000, lambda: self.screen.set_visible(False))
 
 
-class GameGui():
+class GameGui:
     def __init__(self, window):
         self.playing = False
 
@@ -36,7 +72,7 @@ class GameGui():
         self.start_screen = StartScreen(self, window)
 
 
-class QuestionSelector():
+class QuestionSelector:
     def __init__(self):
         self.current_question = None
         self.remaining_questions = None
@@ -47,7 +83,7 @@ class QuestionSelector():
         print("selecting unique question")
 
 
-class Quiz():
+class Quiz:
     def __init__(self):
         self.window = self.create_window()
 
