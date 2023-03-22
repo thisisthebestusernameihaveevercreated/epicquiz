@@ -1,6 +1,33 @@
 import tkinter
 
 
+class Question:
+    def __init__(self, question_text, question_type, answer_type, possible_answers, correct_answers):
+        self.question_text = question_text
+
+        self.question_type = question_type
+        self.answer_type = answer_type
+
+        self.possible = possible_answers
+        self.correct = correct_answers
+
+
+class GameConstants:
+    def __init__(self):
+        self.questions = [
+            Question(
+                "What is the answer to this question?",  # Question text
+                1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
+                1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
+                ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers - put _ before the text to make it case sensitive)
+                [0, 3]  # Correct answers (indexes of correct answers)
+            )
+        ]
+
+
+constants = GameConstants()
+
+
 class TkObject:
     def __init__(self, object):
         self.object = object
