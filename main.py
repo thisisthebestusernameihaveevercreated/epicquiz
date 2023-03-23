@@ -24,6 +24,9 @@ class GameConstants:
             )
         ]
 
+        self.playing = False
+        self.username = None
+
 
 constants = GameConstants()
 
@@ -73,19 +76,78 @@ class StartScreen:
 
         self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32")).set_parent(self.screen)
 
-        self.play_button_text = tkinter.StringVar(None, "Play the quiz")
+        self.play_button_text = tkinter.StringVar(None, "Please enter your name")
 
         self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game)).set_parent(self.screen)
 
-    def play_game(self):
-        if self.gui.playing:
+        self.username_variable = tkinter.StringVar(None, "Enter your name here")
+        self.name_text = TkObject(tkinter.Entry(textvariable=self.username_variable)).set_parent(self.screen)
+
+        self.name_text.object.bind("<FocusIn>", self.focus_username)
+        self.name_text.object.bind("<Return>", self.play_game)
+
+        self.focused_username = False
+
+        self.username_variable.trace("w", self.on_username_changed)
+
+        self.acceptable_username = False
+
+        self.play_debounce = False
+
+    def focus_username(self, *args):
+        self.username_variable.set("")
+
+        self.focused_username = True
+
+    def on_username_changed(self, *args):
+        username = self.username_variable.get()
+
+        acceptable = self.focused_username and len(username) > 0
+
+        self.acceptable_username = acceptable
+
+        self.set_play_text()
+
+    def set_play_text(self):
+        if self.acceptable_username:
+            self.play_button_text.set("Play the quiz")
+
             return
 
-        self.gui.playing = True
+        self.play_button_text.set("Please enter your username")
+
+    def reset_play_debounce(self):
+        self.play_debounce = False
+
+        self.set_play_text()
+
+    def play_game(self, *args):
+        if constants.playing or self.play_debounce:
+            return
+
+        if not self.acceptable_username:
+            self.play_debounce = True
+
+            self.play_button_text.set("That is not an acceptable username")
+
+            self.screen.after(1000, self.reset_play_debounce)
+
+            return
+
+        username = self.username_variable.get()
+
+        constants.playing = True
+
+        constants.username = username
+
+        print("Setting username to '" + username + "'")
 
         self.play_button_text.set("Loading the quiz...")
 
         print("Loading quiz...")
+
+        if len(args) > 0:
+            self.screen.object.focus_set()
 
         self.screen.after(1000, lambda: self.screen.set_visible(False))
 
