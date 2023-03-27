@@ -19,8 +19,7 @@ class GameConstants:
                 "What is the answer to this question?",  # Question text
                 1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
-                ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
-                # put _ before the text to make it case sensitive)
+                ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers - put _ before the text to make it case sensitive)
                 [0, 3]  # Correct answers (indexes of correct answers)
             )
         ]
@@ -77,12 +76,12 @@ class StartScreen:
 
         self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32")).set_parent(self.screen)
 
-        self.play_button_text = tkinter.StringVar(None, "Please enter your username")
+        self.play_button_text = tkinter.StringVar(None, "Please enter your name")
 
         self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game)).set_parent(self.screen)
 
-        self.username_variable = tkinter.StringVar(None, "Enter your username here")
-        self.name_text = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50)).set_parent(self.screen)
+        self.username_variable = tkinter.StringVar(None, "Enter your name here")
+        self.name_text = TkObject(tkinter.Entry(textvariable=self.username_variable)).set_parent(self.screen)
 
         self.name_text.object.bind("<FocusIn>", self.focus_username)
         self.name_text.object.bind("<Return>", self.play_game)
@@ -122,22 +121,6 @@ class StartScreen:
 
         self.set_play_text()
 
-    def switch_to_quiz(self, step):
-        if step == 2:
-            self.gui.quiz_screen.screen.set_visible(True)
-            self.gui.quiz_screen.username_label.set_visible(False)
-
-            return
-
-        self.screen.set_visible(False)
-
-        #self.gui.quiz_screen.screen.set_visible(True)
-        self.gui.quiz_screen.username_label.set_visible(True)
-
-        self.gui.quiz_screen.username_label.object.pack(anchor=tkinter.NW)
-
-        self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
-
     def play_game(self, *args):
         if constants.playing or self.play_debounce:
             return
@@ -166,25 +149,7 @@ class StartScreen:
         if len(args) > 0:
             self.screen.object.focus_set()
 
-        self.gui.quiz_screen.welcome_username_text.set("Welcome, " + username + "!")
-
-        self.screen.after(1000, lambda: self.switch_to_quiz(1))
-
-
-class QuizScreen:
-    def __init__(self, gui, window):
-        self.gui = gui
-        self.window = window
-
-        self.screen = TkObject(tkinter.Frame())
-
-        self.welcome_username_text = tkinter.StringVar(None, "Welcome, INSERT NAME HERE")
-        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text)).set_parent(self.screen)
-
-        self.question_text = tkinter.StringVar(None, "(0/0) Why did the Aidan Belch fall off of its bed?")
-        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text,font="{Arial Black} 11")).set_parent(self.screen)
-
-        self.screen.set_visible(False)
+        self.screen.after(1000, lambda: self.screen.set_visible(False))
 
 
 class GameGui:
@@ -194,7 +159,6 @@ class GameGui:
         self.window = window
 
         self.start_screen = StartScreen(self, window)
-        self.quiz_screen = QuizScreen(self, window)
 
 
 class QuestionSelector:
