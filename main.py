@@ -20,7 +20,7 @@ class GameConstants:
                 1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
-                # put _ before the text to make it case sensitive)
+                # put _ before the text to make it case-sensitive)
                 [0, 3]  # Correct answers (indexes of correct answers)
             )
         ]
@@ -33,13 +33,30 @@ constants = GameConstants()
 
 
 class TkObject:
-    def __init__(self, object):
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button, *args):
         self.object = object
-        self.object.pack()
+        #self.object.pack()
 
         self.parent = None
 
         self.children = []
+
+        anchor = None
+
+        if len(args) > 2:
+            anchor = args[2]
+
+        self.previous_anchor = anchor
+
+        if len(args) > 0:
+            if args[0]:
+                self.set_visible(args[0], anchor)
+        else:
+            self.set_visible(True, anchor)
+
+        if len(args) > 1:
+            if args[1]:
+                self.set_parent(args[1])
 
     def set_parent(self, parent):
         if self.parent:
@@ -53,9 +70,19 @@ class TkObject:
 
         return self
 
-    def set_visible(self, visible):
+    def set_visible(self, visible, *args):
+        anchor = None
+
+        if len(args) > 0:
+            anchor = args[0]
+
+        if anchor:
+            self.previous_anchor = anchor
+
         if visible:
-            self.object.pack()
+            expand = self.previous_anchor == tkinter.CENTER
+
+            self.object.pack(anchor=self.previous_anchor, expand=expand)
         else:
             self.object.pack_forget()
 
@@ -75,17 +102,16 @@ class StartScreen:
 
         self.screen = TkObject(tkinter.Frame())
 
-        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32")).set_parent(self.screen)
-
-        self.play_button_text = tkinter.StringVar(None, "Please enter your username")
-
-        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game)).set_parent(self.screen)
+        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen, tkinter.CENTER)
 
         self.username_variable = tkinter.StringVar(None, "Enter your username here")
-        self.name_text = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50)).set_parent(self.screen)
+        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50), True, self.screen, tkinter.CENTER)
 
-        self.name_text.object.bind("<FocusIn>", self.focus_username)
-        self.name_text.object.bind("<Return>", self.play_game)
+        self.play_button_text = tkinter.StringVar(None, "Please enter your username")
+        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), True, self.screen, tkinter.CENTER)
+
+        self.name_entry.object.bind("<FocusIn>", self.focus_username)
+        self.name_entry.object.bind("<Return>", self.play_game)
 
         self.focused_username = False
 
@@ -134,8 +160,6 @@ class StartScreen:
         #self.gui.quiz_screen.screen.set_visible(True)
         self.gui.quiz_screen.username_label.set_visible(True)
 
-        self.gui.quiz_screen.username_label.object.pack(anchor=tkinter.NW)
-
         self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
     def play_game(self, *args):
@@ -179,12 +203,10 @@ class QuizScreen:
         self.screen = TkObject(tkinter.Frame())
 
         self.welcome_username_text = tkinter.StringVar(None, "Welcome, INSERT NAME HERE")
-        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text)).set_parent(self.screen)
+        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), False, self.screen, tkinter.NW)
 
         self.question_text = tkinter.StringVar(None, "(0/0) Why did the Aidan Belch fall off of its bed?")
-        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text,font="{Arial Black} 11")).set_parent(self.screen)
-
-        self.screen.set_visible(False)
+        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text,font="{Arial Black} 11"), False, self.screen)
 
 
 class GameGui:
@@ -196,16 +218,27 @@ class GameGui:
         self.start_screen = StartScreen(self, window)
         self.quiz_screen = QuizScreen(self, window)
 
+        self.question_selector = QuestionSelector(self, window)
+
 
 class QuestionSelector:
-    def __init__(self):
+    def __init__(self, gui, window):
+        self.gui = gui
+        self.window = window
+
         self.current_question = None
         self.remaining_questions = None
 
+        self.preset_questions = None
+
+    def setup(self):
+        self.remaining_questions = []
         self.preset_questions = []
 
-    def select_unique_question(self):
-        print("selecting unique question")
+        self.preset_questions.append(self.obtain_unique_question)
+
+    def obtain_unique_question(self):
+        print("obtaining unique question")
 
 
 class Quiz:
@@ -213,6 +246,8 @@ class Quiz:
         self.window = self.create_window()
 
         self.gui = self.create_gui()
+
+        self.question_selector = self.create_question_selector()
 
         self.window.mainloop()
 
@@ -228,12 +263,15 @@ class Quiz:
     def create_gui(self):
         return GameGui(self.window)
 
+    def create_question_selector(self):
+        return QuestionSelector(self.gui, self.window)
+
 
 if __name__ == '__main__':
     window = tkinter.Tk()
 
     window.title("quiz")
-    window.geometry("600x600")
+    window.geometry("400x400")
     window.resizable(False, False)
 
     gui = GameGui(window)
