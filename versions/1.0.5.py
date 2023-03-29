@@ -48,17 +48,6 @@ class TkObject:
 
         self.previous_anchor = anchor
 
-        self.padx = 0
-        self.pady = 0
-
-        if len(args) > 2:
-            if args[2]:
-                self.pady = args[2]
-
-        if len(args) > 3:
-            if args[3]:
-                self.padx = args[3]
-
         if len(args) > 0:
             if args[0]:
                 self.set_visible(args[0], anchor)
@@ -93,7 +82,7 @@ class TkObject:
         if visible:
             expand = self.previous_anchor == tkinter.CENTER
 
-            self.object.pack(anchor=self.previous_anchor, expand=expand, padx=self.padx, pady=self.pady)
+            self.object.pack(anchor=self.previous_anchor, expand=expand)
         else:
             self.object.pack_forget()
 
@@ -113,15 +102,13 @@ class StartScreen:
 
         self.screen = TkObject(tkinter.Frame())
 
-        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen, tkinter.N)
+        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen, tkinter.CENTER)
 
         self.username_variable = tkinter.StringVar(None, "Enter your username here")
-        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50), True, self.screen, tkinter.N)
-
-        #TkObject(tkinter.Label(font="{Arial} 25"), True, self.screen)
+        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50), True, self.screen, tkinter.CENTER)
 
         self.play_button_text = tkinter.StringVar(None, "Please enter your username")
-        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), True, self.screen, tkinter.N, 100)
+        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), True, self.screen, tkinter.CENTER)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
         self.name_entry.object.bind("<Return>", self.play_game)
@@ -254,8 +241,8 @@ class QuestionSelector:
         print("obtaining unique question")
 
 
-class Quiz(tkinter.Tk):
-    def __init__(self, *args):
+class Quiz:
+    def __init__(self):
         self.window = self.create_window()
 
         self.gui = self.create_gui()
