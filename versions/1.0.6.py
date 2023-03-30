@@ -1,5 +1,4 @@
 import tkinter
-import random
 
 
 class Question:
@@ -17,7 +16,7 @@ class GameConstants:
     def __init__(self):
         self.questions = [
             Question(
-                "What is the correct answer to this question?",  # Question text
+                "What is the answer to this question?",  # Question text
                 1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
@@ -36,7 +35,7 @@ constants = GameConstants()
 class TkObject:
     def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button, *args):
         self.object = object
-        # self.object.pack()
+        #self.object.pack()
 
         self.parent = None
 
@@ -52,13 +51,13 @@ class TkObject:
         self.padx = 0
         self.pady = 0
 
+        if len(args) > 2:
+            if args[2]:
+                self.pady = args[2]
+
         if len(args) > 3:
             if args[3]:
-                self.pady = args[3]
-
-        if len(args) > 4:
-            if args[4]:
-                self.padx = args[4]
+                self.padx = args[3]
 
         if len(args) > 0:
             if args[0]:
@@ -114,16 +113,15 @@ class StartScreen:
 
         self.screen = TkObject(tkinter.Frame())
 
-        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen,
-                                  tkinter.N, 10)
+        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen, tkinter.N)
 
         self.username_variable = tkinter.StringVar(None, "Enter your username here")
-        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable, width=50), True, self.screen,
-                                   tkinter.N)
+        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable,width=50), True, self.screen, tkinter.N)
 
-        self.play_button_text = tkinter.StringVar(None, "Play the quiz")
-        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), False,
-                                    self.screen, tkinter.N, 10)
+        #TkObject(tkinter.Label(font="{Arial} 25"), True, self.screen)
+
+        self.play_button_text = tkinter.StringVar(None, "Please enter your username")
+        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), True, self.screen, tkinter.N, 100)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
         self.name_entry.object.bind("<Return>", self.play_game)
@@ -152,11 +150,11 @@ class StartScreen:
 
     def set_play_text(self):
         if self.acceptable_username:
-            self.play_button.set_visible(True)
+            self.play_button_text.set("Play the quiz")
 
             return
 
-        self.play_button.set_visible(False)
+        self.play_button_text.set("Please enter your username")
 
     def reset_play_debounce(self):
         self.play_debounce = False
@@ -165,10 +163,6 @@ class StartScreen:
 
     def switch_to_quiz(self, step):
         if step == 2:
-            self.window.question_selector.setup()
-
-            self.gui.quiz_screen.question_text.set("(" + str(self.window.question_selector.current_question + 1) + "/" + str(len(self.window.question_selector.preset_questions)) + ") " + self.window.question_selector.get_current_question().question_text)
-
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
 
@@ -176,7 +170,7 @@ class StartScreen:
 
         self.screen.set_visible(False)
 
-        # self.gui.quiz_screen.screen.set_visible(True)
+        #self.gui.quiz_screen.screen.set_visible(True)
         self.gui.quiz_screen.username_label.set_visible(True)
 
         self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
@@ -222,12 +216,10 @@ class QuizScreen:
         self.screen = TkObject(tkinter.Frame())
 
         self.welcome_username_text = tkinter.StringVar(None, "Welcome, INSERT NAME HERE")
-        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), False, self.screen,
-                                       tkinter.NW)
+        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), False, self.screen, tkinter.NW)
 
         self.question_text = tkinter.StringVar(None, "(0/0) Why did the Aidan Belch fall off of its bed?")
-        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
-                                       self.screen)
+        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text,font="{Arial Black} 11"), False, self.screen)
 
 
 class GameGui:
@@ -239,15 +231,12 @@ class GameGui:
         self.start_screen = StartScreen(self, window)
         self.quiz_screen = QuizScreen(self, window)
 
-        self.question_selector = None
-
-    def setup(self):
-        self.question_selector: QuestionSelector = self.window.question_selector
+        self.question_selector = QuestionSelector(self, window)
 
 
 class QuestionSelector:
-    def __init__(self, window):
-        self.gui = window.gui
+    def __init__(self, gui, window):
+        self.gui = gui
         self.window = window
 
         self.current_question = None
@@ -256,59 +245,48 @@ class QuestionSelector:
         self.preset_questions = None
 
     def setup(self):
-        self.current_question = 0
-
-        self.remaining_questions = constants.questions.copy()
+        self.remaining_questions = []
         self.preset_questions = []
 
-        for i in range(0, random.randrange(8, 13)):
-            question = self.obtain_unique_question()
-
-            if not question:
-                print("Not enough questions!")
-
-                break
-
-            self.preset_questions.append(question)
-
-        print(self.get_current_question().question_text)
+        self.preset_questions.append(self.obtain_unique_question)
 
     def obtain_unique_question(self):
-        if len(self.remaining_questions) == 0:
-            return
-
-        question = random.choice(self.remaining_questions)
-
-        self.remaining_questions.remove(question)
-
-        return question
-
-    def get_current_question(self):
-        return self.preset_questions[self.current_question]
+        print("obtaining unique question")
 
 
 class Quiz(tkinter.Tk):
-    def __init__(self):
-        super().__init__()
-
-        self.title("quiz")
-        self.geometry("500x500")
-        self.resizable(False, False)
+    def __init__(self, *args):
+        self.window = self.create_window()
 
         self.gui = self.create_gui()
 
         self.question_selector = self.create_question_selector()
 
-        self.gui.setup()
+        self.window.mainloop()
+
+    def create_window(self):
+        window = tkinter.Tk()
+
+        window.title("quiz")
+        window.geometry("600x600")
+        window.resizable(False, False)
+
+        return window
 
     def create_gui(self):
-        return GameGui(self)
+        return GameGui(self.window)
 
     def create_question_selector(self):
-        return QuestionSelector(self)
+        return QuestionSelector(self.gui, self.window)
 
 
 if __name__ == '__main__':
-    quiz = Quiz()
+    window = tkinter.Tk()
 
-    quiz.mainloop()
+    window.title("quiz")
+    window.geometry("400x400")
+    window.resizable(False, False)
+
+    gui = GameGui(window)
+
+    window.mainloop()
