@@ -34,7 +34,7 @@ constants = GameConstants()
 
 
 class TkObject:
-    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button, *args):
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton, *args):
         self.object = object
         # self.object.pack()
 
@@ -106,6 +106,17 @@ class TkObject:
     def after(self, time_ms, function):
         return self.object.after(time_ms, function)
 
+    def clear_children(self):
+        for child in self.children:
+            child.destroy()
+
+    def destroy(self):
+        self.clear_children()
+
+        self.object.destroy()
+
+        del self
+
 
 class StartScreen:
     def __init__(self, gui, window):
@@ -165,9 +176,7 @@ class StartScreen:
 
     def switch_to_quiz(self, step):
         if step == 2:
-            self.window.question_selector.setup()
-
-            self.gui.quiz_screen.question_text.set("(" + str(self.window.question_selector.current_question + 1) + "/" + str(len(self.window.question_selector.preset_questions)) + ") " + self.window.question_selector.get_current_question().question_text)
+            self.gui.quiz_screen.start_quiz()
 
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
@@ -225,9 +234,46 @@ class QuizScreen:
         self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), False, self.screen,
                                        tkinter.NW)
 
+        self.answer_container = TkObject(tkinter.Frame(), False, self.screen)
+
         self.question_text = tkinter.StringVar(None, "(0/0) Why did the Aidan Belch fall off of its bed?")
         self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
                                        self.screen)
+
+        self.answer_objects = []
+
+        self.question_selector = None
+
+    def start_quiz(self):
+        self.window.question_selector.setup()
+
+        self.update_quiz()
+
+    def update_quiz(self):
+        current_question: Question = self.question_selector.get_current_question()
+
+        self.question_text.set(
+            "(" + str(self.question_selector.current_question + 1) + "/" + str(
+                len(self.question_selector.preset_questions)) + ") " +
+            current_question.question_text
+        )
+
+        self.answer_container.clear_children()
+
+        self.answer_objects.clear()
+
+        answer_type = current_question.answer_type
+        question_type = current_question.question_type
+
+        for answer in current_question.possible:
+            if question_type == 1 or question_type == 2:
+                self.answer_objects.append(TkObject(tkinter.Checkbutton(text=answer), False, self.answer_container))
+
+                continue
+
+        self.question_label.set_visible(True)
+
+        self.answer_container.set_visible(True)
 
 
 class GameGui:
@@ -243,6 +289,7 @@ class GameGui:
 
     def setup(self):
         self.question_selector: QuestionSelector = self.window.question_selector
+        self.quiz_screen.question_selector = self.window.question_selector
 
 
 class QuestionSelector:
@@ -270,8 +317,6 @@ class QuestionSelector:
                 break
 
             self.preset_questions.append(question)
-
-        print(self.get_current_question().question_text)
 
     def obtain_unique_question(self):
         if len(self.remaining_questions) == 0:
