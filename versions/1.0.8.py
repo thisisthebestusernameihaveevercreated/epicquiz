@@ -18,7 +18,7 @@ class GameConstants:
         self.questions = [
             Question(
                 "What is the correct answer to this question?",  # Question text
-                3,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
+                1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
                 # put _ before the text to make it case-sensitive)
@@ -34,8 +34,7 @@ constants = GameConstants()
 
 
 class TkObject:
-    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton,
-                 *args):
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton, *args):
         self.object = object
         # self.object.pack()
 
@@ -224,34 +223,6 @@ class StartScreen:
         self.screen.after(1000, lambda: self.switch_to_quiz(1))
 
 
-class AnswerObject:
-    def __init__(self, quiz_screen, text):
-        self.quiz_screen: QuizScreen = quiz_screen
-
-        self.checked = tkinter.IntVar(None, 0)
-
-        self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), False,
-                               quiz_screen.answer_container)
-
-    def clicked(self):
-        question_type = self.quiz_screen.question_selector.get_current_question().question_type
-
-        on = self.checked.get() == 1
-
-        submit_visible = False
-
-        for other_answer in self.quiz_screen.answer_objects:
-            if not submit_visible and other_answer.checked.get() == 1:
-                submit_visible = True
-
-            if not on or other_answer == self or question_type != 1:
-                continue
-
-            other_answer.checked.set(0)
-
-        self.quiz_screen.submit_button.set_visible(submit_visible)
-
-
 class QuizScreen:
     def __init__(self, gui, window):
         self.gui = gui
@@ -269,10 +240,7 @@ class QuizScreen:
         self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
                                        self.screen)
 
-        self.submit_button = TkObject(tkinter.Button(text="Submit answer"), False, self.screen)
-
         self.answer_objects = []
-        self.entry_text = None
 
         self.question_selector = None
 
@@ -297,19 +265,15 @@ class QuizScreen:
         answer_type = current_question.answer_type
         question_type = current_question.question_type
 
-        if question_type == 1 or question_type == 2:
-            for answer in current_question.possible:
-                self.answer_objects.append(AnswerObject(self, answer))
-        else:
-            self.entry_text = tkinter.StringVar(None, "Enter your answer here")
-            self.answer_objects.append(
-                TkObject(tkinter.Entry(textvariable=self.entry_text), False, self.answer_container))
+        for answer in current_question.possible:
+            if question_type == 1 or question_type == 2:
+                self.answer_objects.append(TkObject(tkinter.Checkbutton(text=answer), False, self.answer_container))
+
+                continue
 
         self.question_label.set_visible(True)
 
         self.answer_container.set_visible(True)
-
-        self.submit_button.set_visible(False)
 
 
 class GameGui:
