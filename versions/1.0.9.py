@@ -182,8 +182,6 @@ class StartScreen:
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
 
-            self.gui.quiz_screen.submit_button.set_visible(False)
-
             return
 
         self.screen.set_visible(False)
@@ -231,7 +229,6 @@ class AnswerObject:
         self.quiz_screen: QuizScreen = quiz_screen
 
         self.checked = tkinter.IntVar(None, 0)
-        self.answer_text = text
 
         self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), False,
                                quiz_screen.answer_container)
@@ -241,18 +238,22 @@ class AnswerObject:
 
         on = self.checked.get() == 1
 
+        submit_visible = False
+
         for other_answer in self.quiz_screen.answer_objects:
+            if not submit_visible and other_answer.checked.get() == 1:
+                submit_visible = True
+
             if not on or other_answer == self or question_type != 1:
                 continue
 
             other_answer.checked.set(0)
 
-        self.quiz_screen.set_submit_visibility()
+        self.quiz_screen.submit_button.set_visible(submit_visible)
 
 
 class QuizScreen:
     def __init__(self, gui, window):
-        self.input_entry = None
         self.gui = gui
         self.window = window
 
@@ -268,63 +269,12 @@ class QuizScreen:
         self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
                                        self.screen)
 
-        self.submit_button_text = tkinter.StringVar(None, "Submit answer")
-        self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer), False, self.screen)
+        self.submit_button = TkObject(tkinter.Button(text="Submit answer"), False, self.screen)
 
         self.answer_objects = []
         self.entry_text = None
 
         self.question_selector = None
-
-        self.clicked_entry = False
-
-    def is_answer_input_valid(self):
-        answer_text = self.entry_text.get()
-
-        return len(answer_text) > 0 and self.clicked_entry
-
-    def clear_entry_text(self, *args):
-        if self.clicked_entry:
-            return
-
-        self.clicked_entry = True
-
-        self.entry_text.set("")
-
-    def submit_answer(self, *args):
-        question: Question = self.question_selector.get_current_question()
-
-        question_type = question.question_type
-
-        if self.submit_button_text.get() != "Submit answer" or question_type == 3 and not self.is_answer_input_valid():
-            return
-
-        self.submit_button_text.set("Submitting answer...")
-
-        answers = []
-
-        if question_type == 3:
-            answers.append(self.entry_text.get())
-        else:
-            for answer_object in self.answer_objects:
-                if answer_object.checked.get() == 1:
-                    answers.append(answer_object.answer_text)
-
-        print(answers)
-
-        self.submit_button_text.set("Submit answer")
-
-    def set_submit_visibility(self, *args):
-        submit_visible = False
-
-        if self.question_selector.get_current_question().question_type == 3:
-            submit_visible = self.is_answer_input_valid()
-        else:
-            for other_answer in self.answer_objects:
-                if not submit_visible and other_answer.checked.get() == 1:
-                    submit_visible = True
-
-        self.submit_button.set_visible(submit_visible)
 
     def start_quiz(self):
         self.window.question_selector.setup()
@@ -352,16 +302,8 @@ class QuizScreen:
                 self.answer_objects.append(AnswerObject(self, answer))
         else:
             self.entry_text = tkinter.StringVar(None, "Enter your answer here")
-
-            self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), False, self.answer_container)
-
             self.answer_objects.append(
-                self.input_entry)
-
-            self.input_entry.object.bind("<FocusIn>", self.clear_entry_text)
-            self.input_entry.object.bind("<Return>", self.submit_answer)
-
-            self.entry_text.trace("w", self.set_submit_visibility)
+                TkObject(tkinter.Entry(textvariable=self.entry_text), False, self.answer_container))
 
         self.question_label.set_visible(True)
 
