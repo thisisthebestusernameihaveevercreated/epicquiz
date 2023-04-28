@@ -10,7 +10,12 @@ class Question:
         self.answer_type = answer_type
 
         self.possible = possible_answers
-        self.correct = correct_answers
+
+        real_correct_answers = []
+        for answer_index in correct_answers:
+            real_correct_answers.append(possible_answers[answer_index])
+
+        self.correct = real_correct_answers
 
 
 class GameConstants:
@@ -18,7 +23,7 @@ class GameConstants:
         self.questions = [
             Question(
                 "What is the correct answer to this question?",  # Question text
-                3,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
+                2,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
                 # put _ before the text to make it case-sensitive)
@@ -269,7 +274,8 @@ class QuizScreen:
                                        self.screen)
 
         self.submit_button_text = tkinter.StringVar(None, "Submit answer")
-        self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer), False, self.screen)
+        self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer),
+                                      False, self.screen)
 
         self.answer_objects = []
         self.entry_text = None
@@ -310,9 +316,24 @@ class QuizScreen:
                 if answer_object.checked.get() == 1:
                     answers.append(answer_object.answer_text)
 
-        print(answers)
+        correct_answers = []
+        incorrect_answers = []
+        question_answers = question.correct
+
+        for answer in answers:
+            if answer in question_answers:
+                correct_answers.append(answer)
+            else:
+                incorrect_answers.append(answer)
+
+        answer_type = question.answer_type
+        correct_length = len(correct_answers)
+        correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
         self.submit_button_text.set("Submit answer")
+
+        if correct:
+            print("CORRECT! MOVE TO NEXT QUESTION")
 
     def set_submit_visibility(self, *args):
         submit_visible = False
