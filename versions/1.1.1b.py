@@ -34,8 +34,6 @@ class GameConstants:
         self.playing = False
         self.username = None
 
-        self.tk_objects = []
-
 
 constants = GameConstants()
 
@@ -44,8 +42,6 @@ class TkObject:
     def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton,
                  *args):
         self.object = object
-        self.id = len(constants.tk_objects)
-        constants.tk_objects.append(self)
         # self.object.pack()
 
         self.parent = None
@@ -61,8 +57,6 @@ class TkObject:
 
         self.padx = 0
         self.pady = 0
-
-        self.visible = True
 
         if len(args) > 3:
             if args[3]:
@@ -100,25 +94,10 @@ class TkObject:
         if len(args) > 0:
             anchor = args[0]
 
-        if len(args) <= 1 or not args[1]:
-            print(self.id, len(args), len(args) > 1 and args[1] or "NO")
-            self.visible = visible
-
         if anchor:
             self.previous_anchor = anchor
 
-        override_invisible = False
-        current_parent = self
-        while True:
-            current_parent = current_parent.parent
-            if not current_parent:
-                break
-
-            if not current_parent.visible:
-                override_invisible = True
-                break
-
-        if visible and not override_invisible:
+        if visible:
             expand = self.previous_anchor == tkinter.CENTER
 
             self.object.pack(anchor=self.previous_anchor, expand=expand, padx=self.padx, pady=self.pady)
@@ -126,8 +105,7 @@ class TkObject:
             self.object.pack_forget()
 
         for child in self.children:
-            child.set_visible(visible and child.visible, child.previous_anchor, True)
-            #child.set_visible(visible)
+            child.set_visible(visible)
 
         return self
 
@@ -142,8 +120,6 @@ class TkObject:
         self.clear_children()
 
         self.object.destroy()
-
-        constants.tk_objects.remove(self)
 
         del self
 
@@ -301,10 +277,6 @@ class QuizScreen:
         self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer),
                                       False, self.screen)
 
-        self.result_label_text = tkinter.StringVar(None, "UNKNOWN RESULT")
-        self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), False, self.screen)
-        print(self.result_label.visible, self.result_label.id)
-
         self.answer_objects = []
         self.entry_text = None
 
@@ -361,13 +333,7 @@ class QuizScreen:
         self.submit_button_text.set("Submit answer")
 
         if correct:
-            self.result_label_text.set("Correct!")
-            self.result_label.object.config(fg="green")
-        else:
-            self.result_label_text.set("Incorrect")
-            self.result_label.object.config(fg="red")
-
-        self.result_label.set_visible(True)
+            print("CORRECT! MOVE TO NEXT QUESTION")
 
     def set_submit_visibility(self, *args):
         submit_visible = False
