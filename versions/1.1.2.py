@@ -62,7 +62,7 @@ class TkObject:
         self.padx = 0
         self.pady = 0
 
-        self.visible = len(args) < 1 or args[0]
+        self.visible = True
 
         if len(args) > 3:
             if args[3]:
@@ -72,17 +72,15 @@ class TkObject:
             if args[4]:
                 self.padx = args[4]
 
-        """if len(args) > 0:
+        if len(args) > 0:
             if args[0]:
                 self.set_visible(args[0], anchor)
         else:
-            self.set_visible(True, anchor)"""
+            self.set_visible(True, anchor)
 
         if len(args) > 1:
             if args[1]:
                 self.set_parent(args[1])
-
-        self.set_visible(self.visible)
 
     def set_parent(self, parent):
         if self.parent:
@@ -103,6 +101,7 @@ class TkObject:
             anchor = args[0]
 
         if len(args) <= 1 or not args[1]:
+            print(self.id, len(args), len(args) > 1 and args[1] or "NO")
             self.visible = visible
 
         if anchor:
@@ -212,7 +211,7 @@ class StartScreen:
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
 
-            #self.gui.quiz_screen.submit_button.set_visible(False)
+            self.gui.quiz_screen.submit_button.set_visible(False)
 
             return
 
@@ -263,7 +262,7 @@ class AnswerObject:
         self.checked = tkinter.IntVar(None, 0)
         self.answer_text = text
 
-        self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), True,
+        self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), False,
                                quiz_screen.answer_container)
 
     def clicked(self):
@@ -304,6 +303,7 @@ class QuizScreen:
 
         self.result_label_text = tkinter.StringVar(None, "UNKNOWN RESULT")
         self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), False, self.screen)
+        print(self.result_label.visible, self.result_label.id)
 
         self.answer_objects = []
         self.entry_text = None
@@ -312,7 +312,6 @@ class QuizScreen:
 
         self.clicked_entry = False
 
-        self.ready_for_next_question = False
     def is_answer_input_valid(self):
         answer_text = self.entry_text.get()
 
@@ -327,12 +326,6 @@ class QuizScreen:
         self.entry_text.set("")
 
     def submit_answer(self, *args):
-        if self.ready_for_next_question:
-            print(self.question_selector.next_question())
-            self.update_quiz()
-
-            return
-
         question: Question = self.question_selector.get_current_question()
 
         question_type = question.question_type
@@ -365,7 +358,7 @@ class QuizScreen:
         correct_length = len(correct_answers)
         correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
-        self.submit_button_text.set("Next question")
+        self.submit_button_text.set("Submit answer")
 
         if correct:
             self.result_label_text.set("Correct!")
@@ -375,8 +368,6 @@ class QuizScreen:
             self.result_label.object.config(fg="red")
 
         self.result_label.set_visible(True)
-
-        self.ready_for_next_question = True
 
     def set_submit_visibility(self, *args):
         submit_visible = False
@@ -408,6 +399,7 @@ class QuizScreen:
 
         self.answer_objects.clear()
 
+        answer_type = current_question.answer_type
         question_type = current_question.question_type
 
         if question_type == 1 or question_type == 2:
@@ -416,7 +408,7 @@ class QuizScreen:
         else:
             self.entry_text = tkinter.StringVar(None, "Enter your answer here")
 
-            self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), True, self.answer_container)
+            self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), False, self.answer_container)
 
             self.answer_objects.append(
                 self.input_entry)
@@ -487,18 +479,6 @@ class QuestionSelector:
 
     def get_current_question(self):
         return self.preset_questions[self.current_question]
-
-    def next_question(self):
-        next_id = self.current_question + 1
-
-        if next_id >= len(self.preset_questions):
-            print("OUT OF QUESTIONS!")
-
-            return
-
-        self.current_question = next_id
-
-        return next_id
 
 
 class Quiz(tkinter.Tk):
