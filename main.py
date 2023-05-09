@@ -28,6 +28,20 @@ class GameConstants:
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
                 # put _ before the text to make it case-sensitive)
                 [0, 3]  # Correct answers (indexes of correct answers)
+            ),
+            Question(
+                "This is the second question!",
+                1,
+                2,
+                ["Yeah", "No", "That wasn't even a question", "Ok", "Why not?", "No, it's the third"],
+                [2, 4]
+            ),
+            Question(
+                "How many of you are there?",
+                3,
+                1,
+                ["1"],
+                [0]
             )
         ]
 
@@ -145,6 +159,8 @@ class TkObject:
         self.object.destroy()
 
         constants.tk_objects.remove(self)
+
+        self.parent.children.remove(self)
 
         del self
 
@@ -328,8 +344,10 @@ class QuizScreen:
 
     def submit_answer(self, *args):
         if self.ready_for_next_question:
-            print(self.question_selector.next_question())
+            self.question_selector.next_question()
+            print("updating quiz")
             self.update_quiz()
+            print("updated quiz")
 
             return
 
@@ -431,6 +449,8 @@ class QuizScreen:
         self.answer_container.set_visible(True)
 
         self.submit_button.set_visible(False)
+
+        self.result_label.set_visible(False)
 
 
 class GameGui:
