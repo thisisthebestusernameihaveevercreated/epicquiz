@@ -150,9 +150,8 @@ class TkObject:
         return self.object.after(time_ms, function)
 
     def clear_children(self):
-        #for child in self.children:
-        for i in range(0, len(self.children)):
-            self.children[0].destroy()
+        for child in self.children:
+            child.destroy()
 
     def destroy(self):
         self.clear_children()
@@ -163,7 +162,6 @@ class TkObject:
 
         self.parent.children.remove(self)
 
-        del self.object
         del self
 
 
@@ -331,7 +329,6 @@ class QuizScreen:
         self.clicked_entry = False
 
         self.ready_for_next_question = False
-        self.last_question = False
     def is_answer_input_valid(self):
         answer_text = self.entry_text.get()
 
@@ -347,17 +344,10 @@ class QuizScreen:
 
     def submit_answer(self, *args):
         if self.ready_for_next_question:
-            self.ready_for_next_question = False
-            self.submit_button_text.set("Submit answer")
-
-            if not self.question_selector.next_question():
-                print("FINISHED QUIZ!", self.last_question)
-
-                return
-
-            self.last_question = self.question_selector.current_question >= len(self.question_selector.preset_questions) - 1
-
+            self.question_selector.next_question()
+            print("updating quiz")
             self.update_quiz()
+            print("updated quiz")
 
             return
 
@@ -371,51 +361,29 @@ class QuizScreen:
         self.submit_button_text.set("Submitting answer...")
 
         answers = []
-        #answer_objects_by_answer = {}
-        question_answers = question.correct
 
         if question_type == 3:
             answers.append(self.entry_text.get())
         else:
-            single = question_type == 1
-            one_correct_answer = False
-
             for answer_object in self.answer_objects:
-                checked = answer_object.checked.get() == 1
-                answer_needed = answer_object.answer_text in question_answers
-
-                correct = checked and answer_needed or not checked and not answer_needed
-                if correct:
-                    one_correct_answer = True
-
-                if single and not one_correct_answer and checked:
-                    correct = True
-
-                answer_object.object.object.config(fg=correct and "green" or "red")
-
-                if checked:
+                if answer_object.checked.get() == 1:
                     answers.append(answer_object.answer_text)
-                    #answer_objects_by_answer[answer_object.answer_text] = answer_object
 
         correct_answers = []
         incorrect_answers = []
+        question_answers = question.correct
 
         for answer in answers:
-            correct = answer in question_answers
-
-            if correct:
+            if answer in question_answers:
                 correct_answers.append(answer)
             else:
                 incorrect_answers.append(answer)
-
-            #if question_type != 3:
-                #answer_objects_by_answer.get(answer).object.object.config(fg=correct and "green" or "red")
 
         answer_type = question.answer_type
         correct_length = len(correct_answers)
         correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
-        self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
+        self.submit_button_text.set("Next question")
 
         if correct:
             self.result_label_text.set("Correct!")
