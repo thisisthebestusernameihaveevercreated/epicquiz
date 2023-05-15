@@ -142,7 +142,7 @@ class TkObject:
 
         for child in self.children:
             child.set_visible(visible and child.visible, child.previous_anchor, True)
-            # child.set_visible(visible)
+            #child.set_visible(visible)
 
         return self
 
@@ -150,7 +150,7 @@ class TkObject:
         return self.object.after(time_ms, function)
 
     def clear_children(self):
-        # for child in self.children:
+        #for child in self.children:
         for i in range(0, len(self.children)):
             self.children[0].destroy()
 
@@ -230,7 +230,7 @@ class StartScreen:
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
 
-            # self.gui.quiz_screen.submit_button.set_visible(False)
+            #self.gui.quiz_screen.submit_button.set_visible(False)
 
             return
 
@@ -284,19 +284,10 @@ class AnswerObject:
         self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), True,
                                quiz_screen.answer_container)
 
-        self.previous_answer = self.checked.get()
-
     def clicked(self):
-        answer = self.checked.get()
-
         question_type = self.quiz_screen.question_selector.get_current_question().question_type
 
-        on = answer == 1
-
-        if self.quiz_screen.ready_for_next_question:
-            self.checked.set(self.previous_answer)
-
-            return
+        on = self.checked.get() == 1
 
         for other_answer in self.quiz_screen.answer_objects:
             if not on or other_answer == self or question_type != 1:
@@ -305,8 +296,6 @@ class AnswerObject:
             other_answer.checked.set(0)
 
         self.quiz_screen.set_submit_visibility()
-
-        self.previous_answer = answer
 
 
 class QuizScreen:
@@ -323,7 +312,7 @@ class QuizScreen:
 
         self.answer_container = TkObject(tkinter.Frame(), False, self.screen)
 
-        self.question_text = tkinter.StringVar(None, "(0/0) THIS IS PLACEHOLDER TEXT, YAY!")
+        self.question_text = tkinter.StringVar(None, "(0/0) Why did the Aidan Belch fall off of its bed?")
         self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
                                        self.screen)
 
@@ -343,17 +332,8 @@ class QuizScreen:
 
         self.ready_for_next_question = False
         self.last_question = False
-
-        self.last_entry_text = None
-
     def is_answer_input_valid(self):
-        """if self.ready_for_next_question:
-            self.entry_text.set(self.last_entry_text)
-
-            return"""
-
         answer_text = self.entry_text.get()
-        self.last_entry_text = answer_text
 
         return len(answer_text) > 0 and self.clicked_entry
 
@@ -375,8 +355,7 @@ class QuizScreen:
 
                 return
 
-            self.last_question = self.question_selector.current_question >= len(
-                self.question_selector.preset_questions) - 1
+            self.last_question = self.question_selector.current_question >= len(self.question_selector.preset_questions) - 1
 
             self.update_quiz()
 
@@ -392,13 +371,11 @@ class QuizScreen:
         self.submit_button_text.set("Submitting answer...")
 
         answers = []
-        # answer_objects_by_answer = {}
+        #answer_objects_by_answer = {}
         question_answers = question.correct
 
         if question_type == 3:
             answers.append(self.entry_text.get())
-
-            self.input_entry.object.config(state=tkinter.DISABLED)
         else:
             single = question_type == 1
             one_correct_answer = False
@@ -408,18 +385,17 @@ class QuizScreen:
                 answer_needed = answer_object.answer_text in question_answers
 
                 correct = checked and answer_needed or not checked and not answer_needed
+                if correct:
+                    one_correct_answer = True
 
                 if single and not one_correct_answer and checked:
                     correct = True
-
-                if correct:
-                    one_correct_answer = True
 
                 answer_object.object.object.config(fg=correct and "green" or "red")
 
                 if checked:
                     answers.append(answer_object.answer_text)
-                    # answer_objects_by_answer[answer_object.answer_text] = answer_object
+                    #answer_objects_by_answer[answer_object.answer_text] = answer_object
 
         correct_answers = []
         incorrect_answers = []
@@ -432,13 +408,12 @@ class QuizScreen:
             else:
                 incorrect_answers.append(answer)
 
-            # if question_type != 3:
-            # answer_objects_by_answer.get(answer).object.object.config(fg=correct and "green" or "red")
+            #if question_type != 3:
+                #answer_objects_by_answer.get(answer).object.object.config(fg=correct and "green" or "red")
 
         answer_type = question.answer_type
         correct_length = len(correct_answers)
-        correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(
-            question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
+        correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
         self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
 
@@ -490,7 +465,6 @@ class QuizScreen:
                 self.answer_objects.append(AnswerObject(self, answer))
         else:
             self.entry_text = tkinter.StringVar(None, "Enter your answer here")
-            self.last_entry_text = self.entry_text.get()
 
             self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), True, self.answer_container)
 
