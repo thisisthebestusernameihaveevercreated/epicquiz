@@ -186,9 +186,7 @@ class StartScreen:
                                     self.screen, tkinter.N, 10)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
-        #self.name_entry.object.bind("<Return>", self.play_game)
-
-        self.window.bind("<Return>", self.enter_pressed)
+        self.name_entry.object.bind("<Return>", self.play_game)
 
         self.focused_username = False
 
@@ -244,7 +242,7 @@ class StartScreen:
         self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
     def play_game(self, *args):
-        if constants.playing or self.play_debounce or not self.play_button.visible:
+        if constants.playing or self.play_debounce:
             return
 
         if not self.acceptable_username:
@@ -274,14 +272,6 @@ class StartScreen:
         self.gui.quiz_screen.welcome_username_text.set("Welcome, " + username + "!")
 
         self.screen.after(1000, lambda: self.switch_to_quiz(1))
-
-    def enter_pressed(self, *args):
-        if constants.playing:
-            self.gui.quiz_screen.submit_answer()
-
-            return
-
-        self.play_game()
 
 
 class AnswerObject:
@@ -357,6 +347,11 @@ class QuizScreen:
         self.last_entry_text = None
 
     def is_answer_input_valid(self):
+        """if self.ready_for_next_question:
+            self.entry_text.set(self.last_entry_text)
+
+            return"""
+
         answer_text = self.entry_text.get()
         self.last_entry_text = answer_text
 
@@ -389,9 +384,6 @@ class QuizScreen:
 
         question: Question = self.question_selector.get_current_question()
 
-        if not question:
-            return
-
         question_type = question.question_type
 
         if self.submit_button_text.get() != "Submit answer" or question_type == 3 and not self.is_answer_input_valid():
@@ -400,6 +392,7 @@ class QuizScreen:
         self.submit_button_text.set("Submitting answer...")
 
         answers = []
+        # answer_objects_by_answer = {}
         question_answers = question.correct
 
         if question_type == 3:
@@ -408,22 +401,25 @@ class QuizScreen:
             self.input_entry.object.config(state=tkinter.DISABLED)
         else:
             single = question_type == 1
+            one_correct_answer = False
 
             for answer_object in self.answer_objects:
                 checked = answer_object.checked.get() == 1
                 answer_needed = answer_object.answer_text in question_answers
 
-                correct = checked == answer_needed
-                mid = False
+                correct = checked and answer_needed or not checked and not answer_needed
 
-                if single and answer_needed:
-                    if not correct:
-                        mid = True
+                if single and not one_correct_answer and checked:
+                    correct = True
 
-                answer_object.object.object.config(fg=correct and "green" or mid and "orange" or "red")
+                if correct:
+                    one_correct_answer = True
+
+                answer_object.object.object.config(fg=correct and "green" or "red")
 
                 if checked:
                     answers.append(answer_object.answer_text)
+                    # answer_objects_by_answer[answer_object.answer_text] = answer_object
 
         correct_answers = []
         incorrect_answers = []
@@ -435,6 +431,9 @@ class QuizScreen:
                 correct_answers.append(answer)
             else:
                 incorrect_answers.append(answer)
+
+            # if question_type != 3:
+            # answer_objects_by_answer.get(answer).object.object.config(fg=correct and "green" or "red")
 
         answer_type = question.answer_type
         correct_length = len(correct_answers)
@@ -499,7 +498,7 @@ class QuizScreen:
                 self.input_entry)
 
             self.input_entry.object.bind("<FocusIn>", self.clear_entry_text)
-            #self.input_entry.object.bind("<Return>", self.submit_answer)
+            self.input_entry.object.bind("<Return>", self.submit_answer)
 
             self.entry_text.trace("w", self.set_submit_visibility)
 
@@ -565,7 +564,7 @@ class QuestionSelector:
         return question
 
     def get_current_question(self):
-        return self.preset_questions and self.preset_questions[self.current_question]
+        return self.preset_questions[self.current_question]
 
     def next_question(self):
         next_id = self.current_question + 1
