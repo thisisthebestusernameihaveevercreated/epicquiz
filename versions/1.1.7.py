@@ -1,18 +1,7 @@
-import tkinter, random, platformdirs, os, pathlib
+import tkinter
+import random
 
 
-# OS system path (apparently works cross-platform too)
-main_path = platformdirs.user_data_dir("AnF2023Quiz", "FHSAnF")
-main_directory = os.path.isdir(main_path)
-
-if not main_directory:
-    print("Created folder " + main_path)
-    pathlib.Path.mkdir(main_path)
-
-main_directory = open(main_path, "w")
-
-
-# The class i use for storing question data
 class Question:
     def __init__(self, question_text, question_type, answer_type, possible_answers, correct_answers):
         self.question_text = question_text
@@ -29,10 +18,8 @@ class Question:
         self.correct = real_correct_answers
 
 
-# The class i use for storing variables that i need to use globally across the quiz
 class GameConstants:
     def __init__(self):
-        # My list of questions (refer to comments to see how the answers work)
         self.questions = [
             Question(
                 "What is the correct answer to this question?",  # Question text
@@ -67,13 +54,13 @@ class GameConstants:
 constants = GameConstants()
 
 
-# A custom TK object class that I use to create my GUI objects. It just makes it easier for me to do certain things
 class TkObject:
     def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton,
                  *args):
         self.object = object
         self.id = len(constants.tk_objects)
         constants.tk_objects.append(self)
+        # self.object.pack()
 
         self.parent = None
 
@@ -99,6 +86,12 @@ class TkObject:
             if args[4]:
                 self.padx = args[4]
 
+        """if len(args) > 0:
+            if args[0]:
+                self.set_visible(args[0], anchor)
+        else:
+            self.set_visible(True, anchor)"""
+
         if len(args) > 1:
             if args[1]:
                 self.set_parent(args[1])
@@ -117,7 +110,6 @@ class TkObject:
 
         return self
 
-    # Sets the visibility (optionally anchor and whether it's just updating the visibility or actually setting it)
     def set_visible(self, visible, *args):
         anchor = None
 
@@ -150,19 +142,18 @@ class TkObject:
 
         for child in self.children:
             child.set_visible(visible and child.visible, child.previous_anchor, True)
+            # child.set_visible(visible)
 
         return self
 
-    # Used for running functions after a certain amount of time
     def after(self, time_ms, function):
         return self.object.after(time_ms, function)
 
-    # Used for destroying all children of the object
     def clear_children(self):
+        # for child in self.children:
         for i in range(0, len(self.children)):
             self.children[0].destroy()
 
-    # Used for destroying the object itself. I try to destroy all known traces of the object here
     def destroy(self):
         self.clear_children()
 
@@ -176,7 +167,6 @@ class TkObject:
         del self
 
 
-# The 'main menu' of the quiz. Used for getting the user's name
 class StartScreen:
     def __init__(self, gui, window):
         self.gui = gui
@@ -196,6 +186,7 @@ class StartScreen:
                                     self.screen, tkinter.N, 10)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
+        #self.name_entry.object.bind("<Return>", self.play_game)
 
         self.window.bind("<Return>", self.enter_pressed)
 
@@ -234,7 +225,6 @@ class StartScreen:
 
         self.set_play_text()
 
-    # Step 1 is switching from the main menu to the welcome screen, step 2 is getting to the actual quiz itself
     def switch_to_quiz(self, step):
         if step == 2:
             self.gui.quiz_screen.start_quiz()
@@ -242,24 +232,17 @@ class StartScreen:
             self.gui.quiz_screen.screen.set_visible(True)
             self.gui.quiz_screen.username_label.set_visible(False)
 
+            # self.gui.quiz_screen.submit_button.set_visible(False)
+
             return
 
         self.screen.set_visible(False)
 
-        self.gui.quiz_screen.screen.set_visible(True)
+        # self.gui.quiz_screen.screen.set_visible(True)
         self.gui.quiz_screen.username_label.set_visible(True)
 
         self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
-    def switch_to_main_screen(self):
-        self.play_button_text.set("Play the quiz")
-        self.username_variable.set(constants.username)
-        constants.playing = False
-
-        self.screen.set_visible(True)
-        self.gui.quiz_screen.screen.set_visible(False)
-
-    # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
         if constants.playing or self.play_debounce or not self.play_button.visible:
             return
@@ -292,7 +275,6 @@ class StartScreen:
 
         self.screen.after(1000, lambda: self.switch_to_quiz(1))
 
-    # Allows the user to press enter to proceed through the quiz
     def enter_pressed(self, *args):
         if constants.playing:
             self.gui.quiz_screen.submit_answer()
@@ -302,7 +284,6 @@ class StartScreen:
         self.play_game()
 
 
-# A class that I use for the checkboxes of questions to make it a little easier when storing the checkboxes
 class AnswerObject:
     def __init__(self, quiz_screen, text):
         self.quiz_screen: QuizScreen = quiz_screen
@@ -322,20 +303,6 @@ class AnswerObject:
 
         on = answer == 1
 
-        if on:
-            self.quiz_screen.answer_checked = True
-        else:
-            one_on = False
-
-            for other_object in self.quiz_screen.answer_objects:
-                if other_object.checked.get() == 1:
-                    one_on = True
-
-                    break
-
-            if not one_on:
-                self.quiz_screen.answer_checked = False
-
         if self.quiz_screen.ready_for_next_question:
             self.checked.set(self.previous_answer)
 
@@ -352,7 +319,6 @@ class AnswerObject:
         self.previous_answer = answer
 
 
-# The quiz GUI
 class QuizScreen:
     def __init__(self, gui, window):
         self.input_entry = None
@@ -390,8 +356,6 @@ class QuizScreen:
 
         self.last_entry_text = None
 
-        self.answer_checked = False
-
     def is_answer_input_valid(self):
         answer_text = self.entry_text.get()
         self.last_entry_text = answer_text
@@ -412,17 +376,7 @@ class QuizScreen:
             self.submit_button_text.set("Submit answer")
 
             if not self.question_selector.next_question():
-                self.clear_screen()
-                self.question_label.set_visible(False)
-                self.answer_container.set_visible(False)
-                self.submit_button.set_visible(False)
-                self.result_label.set_visible(False)
-                self.question_selector.reset()
-                self.gui.start_screen.switch_to_main_screen()
-
-                # reset quiz values
-                for name, value in self.gui.default_quiz_values.items():
-                    setattr(self, name, value)
+                print("FINISHED QUIZ!", self.last_question)
 
                 return
 
@@ -431,9 +385,6 @@ class QuizScreen:
 
             self.update_quiz()
 
-            return
-
-        if not self.answer_checked:
             return
 
         question: Question = self.question_selector.get_current_question()
@@ -513,8 +464,6 @@ class QuizScreen:
                 if not submit_visible and other_answer.checked.get() == 1:
                     submit_visible = True
 
-        self.answer_checked = submit_visible
-
         self.submit_button.set_visible(submit_visible)
 
     def start_quiz(self):
@@ -522,15 +471,7 @@ class QuizScreen:
 
         self.update_quiz()
 
-    def clear_screen(self):
-        self.answer_container.clear_children()
-        self.answer_objects.clear()
-
-    # Removes all the answers, changes the question title and creates all necessary checkboxes/entry boxes
     def update_quiz(self):
-        self.clicked_entry = False
-        self.answer_checked = False
-
         current_question: Question = self.question_selector.get_current_question()
 
         self.question_text.set(
@@ -539,7 +480,9 @@ class QuizScreen:
             current_question.question_text
         )
 
-        self.clear_screen()
+        self.answer_container.clear_children()
+
+        self.answer_objects.clear()
 
         question_type = current_question.question_type
 
@@ -556,6 +499,7 @@ class QuizScreen:
                 self.input_entry)
 
             self.input_entry.object.bind("<FocusIn>", self.clear_entry_text)
+            #self.input_entry.object.bind("<Return>", self.submit_answer)
 
             self.entry_text.trace("w", self.set_submit_visibility)
 
@@ -568,7 +512,6 @@ class QuizScreen:
         self.result_label.set_visible(False)
 
 
-# The class that links all of the GUI together
 class GameGui:
     def __init__(self, window):
         self.playing = False
@@ -580,22 +523,11 @@ class GameGui:
 
         self.question_selector = None
 
-        self.default_quiz_values = {}
-
     def setup(self):
         self.question_selector: QuestionSelector = self.window.question_selector
         self.quiz_screen.question_selector = self.window.question_selector
 
-        # Grabs the default values from the quiz to be used for resetting the quiz later on
-        for name in dir(self.quiz_screen):
-            value = getattr(self.quiz_screen, name)
-            if callable(value) or name.find("__") != -1:
-                continue
 
-            self.default_quiz_values[name] = value
-
-
-# The class that decides what questions to be used and in what order
 class QuestionSelector:
     def __init__(self, window):
         self.gui = window.gui
@@ -647,20 +579,12 @@ class QuestionSelector:
 
         return next_id
 
-    def reset(self):
-        self.preset_questions.clear()
-        self.preset_questions = None
-        self.current_question = None
-        self.remaining_questions.clear()
-        self.remaining_questions = None
 
-
-# The class that holds the entire program together
 class Quiz(tkinter.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("The almighty quiz")
+        self.title("quiz")
         self.geometry("500x500")
         self.resizable(False, False)
 
@@ -677,7 +601,6 @@ class Quiz(tkinter.Tk):
         return QuestionSelector(self)
 
 
-# The program starts here
 if __name__ == '__main__':
     quiz = Quiz()
 
