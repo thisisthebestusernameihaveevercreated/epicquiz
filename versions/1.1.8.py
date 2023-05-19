@@ -1,7 +1,18 @@
-import tkinter, random, platformdirs, os, json
+import tkinter, random, platformdirs, os, pathlib
 
 
-# The class I use for storing question data
+# OS system path (apparently works cross-platform too)
+main_path = platformdirs.user_data_dir("AnF2023Quiz", "FHSAnF")
+main_directory = os.path.isdir(main_path)
+
+if not main_directory:
+    print("Created folder " + main_path)
+    pathlib.Path.mkdir(main_path)
+
+main_directory = open(main_path, "w")
+
+
+# The class i use for storing question data
 class Question:
     def __init__(self, question_text, question_type, answer_type, possible_answers, correct_answers):
         self.question_text = question_text
@@ -10,8 +21,6 @@ class Question:
         self.answer_type = answer_type
 
         self.possible = possible_answers
-
-        self.id = None
 
         real_correct_answers = []
         for answer_index in correct_answers:
@@ -49,26 +58,10 @@ class GameConstants:
             )
         ]
 
-        for i in range(0, len(self.questions)):
-            self.questions[i].id = i
-
         self.playing = False
         self.username = None
 
         self.tk_objects = []
-
-        self.main_path = platformdirs.user_data_dir("AnF2023Quiz", "FHSAnF")
-
-        self.in_summary = False
-
-    def create_folder_at_path(self, path):
-        if not os.path.isdir(path):
-            print("Created folder " + path)
-            os.makedirs(path)
-
-            return
-
-        print("Folder at " + path + " already exists")
 
 
 constants = GameConstants()
@@ -76,7 +69,7 @@ constants = GameConstants()
 
 # A custom TK object class that I use to create my GUI objects. It just makes it easier for me to do certain things
 class TkObject:
-    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton | tkinter.Scrollbar,
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton,
                  *args):
         self.object = object
         self.id = len(constants.tk_objects)
@@ -190,10 +183,6 @@ class StartScreen:
         self.window = window
 
         self.screen = TkObject(tkinter.Frame())
-        self.summary_screen = TkObject(tkinter.Frame(), False)
-
-        self.summary_label = TkObject(tkinter.Label(text="Select a file to look through"), True, self.summary_screen)
-        self.summary_scroll = TkObject(tkinter.Scrollbar(), True, self.summary_screen)
 
         self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen,
                                   tkinter.N, 10)
@@ -205,9 +194,6 @@ class StartScreen:
         self.play_button_text = tkinter.StringVar(None, "Play the quiz")
         self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), False,
                                     self.screen, tkinter.N, 10)
-
-        self.summary_button = TkObject(tkinter.Button(text="User summaries", command=self.open_summaries), False,
-                                       self.screen, tkinter.N, 0)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
 
@@ -236,8 +222,12 @@ class StartScreen:
         self.set_play_text()
 
     def set_play_text(self):
-        self.play_button.set_visible(self.acceptable_username)
-        self.summary_button.set_visible(self.acceptable_username)
+        if self.acceptable_username:
+            self.play_button.set_visible(True)
+
+            return
+
+        self.play_button.set_visible(False)
 
     def reset_play_debounce(self):
         self.play_debounce = False
@@ -262,26 +252,12 @@ class StartScreen:
         self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
     def switch_to_main_screen(self):
-        constants.in_summary = False
-
         self.play_button_text.set("Play the quiz")
         self.username_variable.set(constants.username)
         constants.playing = False
 
         self.screen.set_visible(True)
         self.gui.quiz_screen.screen.set_visible(False)
-
-    def switch_to_summary(self):
-        constants.in_summary = True
-
-        self.gui.quiz_screen.setup_summary()
-
-        self.screen.set_visible(False)
-        self.gui.quiz_screen.set_visible(True)
-
-    def open_summaries(self):
-        self.screen.set_visible(False)
-        self.summary_screen.set_visible(True)
 
     # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
@@ -416,8 +392,6 @@ class QuizScreen:
 
         self.answer_checked = False
 
-        self.current_results = None
-
     def is_answer_input_valid(self):
         answer_text = self.entry_text.get()
         self.last_entry_text = answer_text
@@ -437,18 +411,7 @@ class QuizScreen:
             self.ready_for_next_question = False
             self.submit_button_text.set("Submit answer")
 
-            # Quiz finished
             if not self.question_selector.next_question():
-                user_path = constants.main_path + "\\" + constants.username
-                constants.create_folder_at_path(user_path)
-
-                print(user_path, self.current_results)
-                id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
-                data = open(user_path + "\\" + str(id) + ".sav", "w")
-
-                data.write(json.dumps(self.current_results))
-                # TODO: use json.loads to load the file later
-
                 self.clear_screen()
                 self.question_label.set_visible(False)
                 self.answer_container.set_visible(False)
@@ -527,8 +490,6 @@ class QuizScreen:
         correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(
             question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
-        self.current_results.append((question.question_text, answer_type, correct, correct_answers, incorrect_answers))
-
         self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
 
         if correct:
@@ -570,9 +531,6 @@ class QuizScreen:
         self.clicked_entry = False
         self.answer_checked = False
 
-        if not self.current_results:
-            self.current_results = []
-
         current_question: Question = self.question_selector.get_current_question()
 
         self.question_text.set(
@@ -608,9 +566,6 @@ class QuizScreen:
         self.submit_button.set_visible(False)
 
         self.result_label.set_visible(False)
-
-    def setup_summary(self):
-        print("H")
 
 
 # The class that links all of the GUI together
@@ -724,9 +679,6 @@ class Quiz(tkinter.Tk):
 
 # The program starts here
 if __name__ == '__main__':
-    # OS system path (apparently works cross-platform too)
-    constants.create_folder_at_path(constants.main_path)
-
     quiz = Quiz()
 
     quiz.mainloop()
