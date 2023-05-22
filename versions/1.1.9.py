@@ -1,5 +1,4 @@
 import tkinter, random, platformdirs, os, json
-from datetime import datetime
 
 
 # The class I use for storing question data
@@ -238,7 +237,7 @@ class StartScreen:
 
     def set_play_text(self):
         self.play_button.set_visible(self.acceptable_username)
-        self.summary_button.set_visible(self.acceptable_username and os.path.exists(constants.main_path + "\\" + self.username_variable.get()))
+        self.summary_button.set_visible(self.acceptable_username)
 
     def reset_play_debounce(self):
         self.play_debounce = False
@@ -281,15 +280,6 @@ class StartScreen:
         self.gui.quiz_screen.set_visible(True)
 
     def open_summaries(self):
-        self.summary_scroll.clear_children()
-
-        user_path = constants.main_path + "\\" + self.username_variable.get()
-
-        print(user_path)
-        #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
-        for file in os.scandir(user_path):
-            print(file.path)
-
         self.screen.set_visible(False)
         self.summary_screen.set_visible(True)
 
@@ -453,8 +443,7 @@ class QuizScreen:
                 constants.create_folder_at_path(user_path)
 
                 print(user_path, self.current_results)
-                #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
-                id = datetime.now()
+                id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
                 data = open(user_path + "\\" + str(id) + ".sav", "w")
 
                 data.write(json.dumps(self.current_results))
