@@ -62,8 +62,6 @@ class GameConstants:
 
         self.in_summary = False
 
-        self.gui = None
-
     def create_folder_at_path(self, path):
         if not os.path.isdir(path):
             print("Created folder " + path)
@@ -79,7 +77,7 @@ constants = GameConstants()
 
 # A custom TK object class that I use to create my GUI objects. It just makes it easier for me to do certain things
 class TkObject:
-    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton | tkinter.Scrollbar | tkinter.Text,
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton | tkinter.Scrollbar,
                  *args):
         self.object = object
         self.id = len(constants.tk_objects)
@@ -186,14 +184,6 @@ class TkObject:
         del self
 
 
-class SummaryOption:
-    def __init__(self, name, path):
-        self.name = name
-        self.path = path
-
-        self.object = TkObject(tkinter.Button(constants.gui.start_screen.summary_scroll_frame, text=name), True, constants.gui.start_screen.summary_screen)
-
-
 # The 'main menu' of the quiz. Used for getting the user's name
 class StartScreen:
     def __init__(self, gui, window):
@@ -203,24 +193,8 @@ class StartScreen:
         self.screen = TkObject(tkinter.Frame())
         self.summary_screen = TkObject(tkinter.Frame(), False)
 
-        self.summary_scroll_canvas = tkinter.Canvas()
-
         self.summary_label = TkObject(tkinter.Label(text="Select a file to look through"), True, self.summary_screen)
-        self.summary_scroll = TkObject(tkinter.Scrollbar(orient="vertical", command=self.summary_scroll_canvas.yview), True, self.summary_screen)
-
-        self.summary_scroll_frame = tkinter.Frame(self.summary_scroll_canvas)
-        self.summary_scroll_frame.bind(
-            "<Configure>",
-            lambda e: self.summary_scroll_canvas.configure(
-                scrollregion=self.summary_scroll_canvas.bbox("all")
-            )
-        )
-
-        self.summary_scroll_canvas.create_window((0, 0), window=self.summary_scroll_frame, anchor="nw")
-        self.summary_scroll_canvas.configure(yscrollcommand=self.summary_scroll.object.set)
-
-        #self.summary_scroll_canvas.pack(fill="both", expand=True)
-        #self.summary_scroll.object.pack(fill="y")
+        self.summary_scroll = TkObject(tkinter.Scrollbar(), True, self.summary_screen)
 
         self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen,
                                   tkinter.N, 10)
@@ -311,19 +285,10 @@ class StartScreen:
 
         user_path = constants.main_path + "\\" + self.username_variable.get()
 
-        self.summary_scroll_canvas.pack(fill="both", expand=True)
-        self.summary_scroll.object.pack(fill="y")
-
+        print(user_path)
         #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
         for file in os.scandir(user_path):
-            file_path = str(file.path)
-            file_name = str(file.name).replace(".sav", "").replace("_", "/")
-
-            #data = open(file_path, "r")
-            #data = json.loads(data.readline())
-
-            for i in range(10):
-                option = SummaryOption(file_name, file_path)
+            print(file.path)
 
         self.screen.set_visible(False)
         self.summary_screen.set_visible(True)
@@ -489,11 +454,11 @@ class QuizScreen:
 
                 print(user_path, self.current_results)
                 #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
-                date = datetime.now()
-                id = str(date.day) + "_" + str(date.month) + "_" + str(date.year) + "-" + str(date.hour) + "_" + str(date.minute) + "_" + str(date.second)
+                id = datetime.now()
                 data = open(user_path + "\\" + str(id) + ".sav", "w")
 
                 data.write(json.dumps(self.current_results))
+                # TODO: use json.loads to load the file later
 
                 self.clear_screen()
                 self.question_label.set_visible(False)
@@ -756,7 +721,6 @@ class Quiz(tkinter.Tk):
         self.resizable(False, False)
 
         self.gui = self.create_gui()
-        constants.gui = self.gui
 
         self.question_selector = self.create_question_selector()
 
