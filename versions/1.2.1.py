@@ -1,8 +1,4 @@
-import json
-import os
-import platformdirs
-import random
-import tkinter
+import tkinter, random, platformdirs, os, json
 from datetime import datetime
 
 
@@ -25,11 +21,10 @@ class Question:
         self.correct = real_correct_answers
 
 
-# The class I use for storing variables that I need to use globally across the quiz
+# The class i use for storing variables that i need to use globally across the quiz
 class GameConstants:
     def __init__(self):
         # My list of questions (refer to comments to see how the answers work)
-        self.default_quiz_values = None
         self.questions = [
             Question(
                 "What is the correct answer to this question?",  # Question text
@@ -68,30 +63,24 @@ class GameConstants:
         self.in_summary = False
 
         self.gui = None
-        self.quiz_screen = None
-        self.start_screen = None
-        self.question_selector = None
-        self.window = None
+
+    def create_folder_at_path(self, path):
+        if not os.path.isdir(path):
+            print("Created folder " + path)
+            os.makedirs(path)
+
+            return
+
+        print("Folder at " + path + " already exists")
 
 
 constants = GameConstants()
 
 
-def create_folder_at_path(path):
-    if not os.path.isdir(path):
-        print("Created folder " + path)
-        os.makedirs(path)
-
-        return
-
-    print("Folder at " + path + " already exists")
-
-
 # A custom TK object class that I use to create my GUI objects. It just makes it easier for me to do certain things
 class TkObject:
-    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton |
-                               tkinter.Scrollbar | tkinter.Text,
-                 visible=True, parent=None, column=0, row=0, padx=0, pady=0, side="top", sticky=""):
+    def __init__(self, object: tkinter.Label | tkinter.Frame | tkinter.Entry | tkinter.Button | tkinter.Checkbutton | tkinter.Scrollbar | tkinter.Text,
+                 *args):
         self.object = object
         self.id = len(constants.tk_objects)
         constants.tk_objects.append(self)
@@ -100,36 +89,29 @@ class TkObject:
 
         self.children = []
 
-        # anchor = None
+        anchor = None
 
-        # if len(args) > 2:
-        #    anchor = args[2]
+        if len(args) > 2:
+            anchor = args[2]
 
-        #self.previous_anchor = anchor
-        self.column = column
-        self.row = row
+        self.previous_anchor = anchor
 
-        self.padx = padx
-        self.pady = pady
+        self.padx = 0
+        self.pady = 0
 
-        self.side = side
+        self.visible = len(args) < 1 or args[0]
 
-        self.sticky = sticky
+        if len(args) > 3:
+            if args[3]:
+                self.pady = args[3]
 
-        self.visible = visible  # len(args) < 1 or args[0]
+        if len(args) > 4:
+            if args[4]:
+                self.padx = args[4]
 
-        self.current_row = 0
-
-        # if len(args) > 3:
-        #    if args[3]:
-        #        self.pady = args[3]
-
-        # if len(args) > 4:
-        #    if args[4]:
-        #        self.padx = args[4]
-
-        if parent:
-            self.set_parent(parent)
+        if len(args) > 1:
+            if args[1]:
+                self.set_parent(args[1])
 
         self.set_visible(self.visible)
 
@@ -149,11 +131,14 @@ class TkObject:
     def set_visible(self, visible, *args):
         anchor = None
 
-        if len(args) == 0 or not args[0]:
+        if len(args) > 0:
+            anchor = args[0]
+
+        if len(args) <= 1 or not args[1]:
             self.visible = visible
 
-        #if anchor:
-            #self.previous_anchor = anchor
+        if anchor:
+            self.previous_anchor = anchor
 
         override_invisible = False
         current_parent = self
@@ -167,22 +152,14 @@ class TkObject:
                 break
 
         if visible and not override_invisible:
-            use_parent_row = False and self.parent and self.row == 0
+            expand = self.previous_anchor == tkinter.CENTER
 
-            self.object.grid(row=use_parent_row and self.parent.current_row or self.row, column=self.column, padx=self.padx, pady=self.pady, sticky=self.sticky)
-
-            self.object.grid_columnconfigure(1, weight=1)
-
-            if use_parent_row:
-                self.parent.current_row += 1
+            self.object.pack(anchor=self.previous_anchor, expand=expand, padx=self.padx, pady=self.pady)
         else:
-            self.object.grid_forget()
-
-            if self.parent and self.row != 0:
-                self.parent.current_row -= 1
+            self.object.pack_forget()
 
         for child in self.children:
-            child.set_visible(visible and child.visible, True)
+            child.set_visible(visible and child.visible, child.previous_anchor, True)
 
         return self
 
@@ -214,24 +191,22 @@ class SummaryOption:
         self.name = name
         self.path = path
 
-        self.object = TkObject(tkinter.Button(constants.gui.start_screen.summary_scroll_frame, text=name),
-                               parent=constants.gui.start_screen.summary_screen)
+        self.object = TkObject(tkinter.Button(constants.gui.start_screen.summary_scroll_frame, text=name), True, constants.gui.start_screen.summary_screen)
 
 
 # The 'main menu' of the quiz. Used for getting the user's name
 class StartScreen:
-    def __init__(self):
+    def __init__(self, gui, window):
+        self.gui = gui
+        self.window = window
+
         self.screen = TkObject(tkinter.Frame())
-        self.summary_screen = TkObject(tkinter.Frame(), visible=False)
+        self.summary_screen = TkObject(tkinter.Frame(), False)
 
         self.summary_scroll_canvas = tkinter.Canvas()
 
-        self.summary_label = TkObject(tkinter.Label(text="Select a file to look through"), parent=self.summary_screen, side="right")
-
-        self.summary_back = TkObject(tkinter.Button(text="Back to menu"), parent=self.summary_screen, side="left")
-
-        self.summary_scroll = TkObject(tkinter.Scrollbar(orient="vertical", command=self.summary_scroll_canvas.yview),
-                                       parent=self.summary_screen)
+        self.summary_label = TkObject(tkinter.Label(text="Select a file to look through"), True, self.summary_screen)
+        self.summary_scroll = TkObject(tkinter.Scrollbar(orient="vertical", command=self.summary_scroll_canvas.yview), True, self.summary_screen)
 
         self.summary_scroll_frame = tkinter.Frame(self.summary_scroll_canvas)
         self.summary_scroll_frame.bind(
@@ -241,30 +216,29 @@ class StartScreen:
             )
         )
 
-        self.summary_scroll_canvas.create_window((0, 0), window=self.summary_scroll_frame)
+        self.summary_scroll_canvas.create_window((0, 0), window=self.summary_scroll_frame, anchor="nw")
         self.summary_scroll_canvas.configure(yscrollcommand=self.summary_scroll.object.set)
 
-        # self.summary_scroll_canvas.pack(fill="both", expand=True)
-        # self.summary_scroll.object.pack(fill="y")
+        #self.summary_scroll_canvas.pack(fill="both", expand=True)
+        #self.summary_scroll.object.pack(fill="y")
 
-        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), parent=self.screen,
-                                  pady=10)
+        self.top_label = TkObject(tkinter.Label(text="the epic quiz", font="{Consolas} 32"), True, self.screen,
+                                  tkinter.N, 10)
 
         self.username_variable = tkinter.StringVar(None, "Enter your username here")
-        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable, width=50), parent=self.screen, row=1)
+        self.name_entry = TkObject(tkinter.Entry(textvariable=self.username_variable, width=50), True, self.screen,
+                                   tkinter.N)
 
         self.play_button_text = tkinter.StringVar(None, "Play the quiz")
-        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game),
-                                    visible=False,
-                                    parent=self.screen, pady=10, row=2)
+        self.play_button = TkObject(tkinter.Button(textvariable=self.play_button_text, command=self.play_game), False,
+                                    self.screen, tkinter.N, 10)
 
-        self.summary_button = TkObject(tkinter.Button(text="User summaries", command=self.open_summaries),
-                                       visible=False,
-                                       parent=self.screen, row=3)
+        self.summary_button = TkObject(tkinter.Button(text="User summaries", command=self.open_summaries), False,
+                                       self.screen, tkinter.N, 0)
 
         self.name_entry.object.bind("<FocusIn>", self.focus_username)
 
-        constants.window.bind("<Return>", self.enter_pressed)
+        self.window.bind("<Return>", self.enter_pressed)
 
         self.focused_username = False
 
@@ -274,12 +248,12 @@ class StartScreen:
 
         self.play_debounce = False
 
-    def focus_username(self, _ignore=None):
+    def focus_username(self, *args):
         self.username_variable.set("")
 
         self.focused_username = True
 
-    def on_username_changed(self, _ignore=None, _ignore2=None, _ignore3=None):
+    def on_username_changed(self, *args):
         username = self.username_variable.get()
 
         acceptable = self.focused_username and len(username) > 0
@@ -290,8 +264,7 @@ class StartScreen:
 
     def set_play_text(self):
         self.play_button.set_visible(self.acceptable_username)
-        self.summary_button.set_visible(
-            self.acceptable_username and os.path.exists(constants.main_path + "\\" + self.username_variable.get()))
+        self.summary_button.set_visible(self.acceptable_username and os.path.exists(constants.main_path + "\\" + self.username_variable.get()))
 
     def reset_play_debounce(self):
         self.play_debounce = False
@@ -301,19 +274,19 @@ class StartScreen:
     # Step 1 is switching from the main menu to the welcome screen, step 2 is getting to the actual quiz itself
     def switch_to_quiz(self, step):
         if step == 2:
-            constants.quiz_screen.start_quiz()
+            self.gui.quiz_screen.start_quiz()
 
-            constants.quiz_screen.screen.set_visible(True)
-            constants.quiz_screen.username_label.set_visible(False)
+            self.gui.quiz_screen.screen.set_visible(True)
+            self.gui.quiz_screen.username_label.set_visible(False)
 
             return
 
         self.screen.set_visible(False)
 
-        constants.quiz_screen.screen.set_visible(True)
-        constants.quiz_screen.username_label.set_visible(True)
+        self.gui.quiz_screen.screen.set_visible(True)
+        self.gui.quiz_screen.username_label.set_visible(True)
 
-        constants.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
+        self.gui.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
     def switch_to_main_screen(self):
         constants.in_summary = False
@@ -323,37 +296,37 @@ class StartScreen:
         constants.playing = False
 
         self.screen.set_visible(True)
-        constants.quiz_screen.screen.set_visible(False)
+        self.gui.quiz_screen.screen.set_visible(False)
 
     def switch_to_summary(self):
         constants.in_summary = True
 
-        constants.quiz_screen.setup_summary()
+        self.gui.quiz_screen.setup_summary()
 
         self.screen.set_visible(False)
-        constants.quiz_screen.set_visible(True)
+        self.gui.quiz_screen.set_visible(True)
 
     def open_summaries(self):
         self.summary_scroll.clear_children()
 
         user_path = constants.main_path + "\\" + self.username_variable.get()
 
-        self.screen.set_visible(False)
-        self.summary_screen.set_visible(True)
+        self.summary_scroll_canvas.pack(fill="both", expand=True)
+        self.summary_scroll.object.pack(fill="y")
 
-        self.summary_scroll_canvas.pack(side="left", fill="both", expand=True)
-        self.summary_scroll.object.pack(side="right", fill="y")
-
-        # id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
+        #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
         for file in os.scandir(user_path):
             file_path = str(file.path)
             file_name = str(file.name).replace(".sav", "").replace("_", "/")
 
-            # data = open(file_path, "r")
-            # data = json.loads(data.readline())
+            #data = open(file_path, "r")
+            #data = json.loads(data.readline())
 
-            for i in range(30):
+            for i in range(10):
                 option = SummaryOption(file_name, file_path)
+
+        self.screen.set_visible(False)
+        self.summary_screen.set_visible(True)
 
     # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
@@ -384,17 +357,14 @@ class StartScreen:
         if len(args) > 0:
             self.screen.object.focus_set()
 
-        constants.quiz_screen.welcome_username_text.set("Welcome, " + username + "!")
+        self.gui.quiz_screen.welcome_username_text.set("Welcome, " + username + "!")
 
         self.screen.after(1000, lambda: self.switch_to_quiz(1))
 
     # Allows the user to press enter to proceed through the quiz
-    def enter_pressed(self, _ignore=None):
-        if constants.in_summary:
-            return
-
+    def enter_pressed(self, *args):
         if constants.playing:
-            constants.quiz_screen.submit_answer()
+            self.gui.quiz_screen.submit_answer()
 
             return
 
@@ -403,80 +373,84 @@ class StartScreen:
 
 # A class that I use for the checkboxes of questions to make it a little easier when storing the checkboxes
 class AnswerObject:
-    def __init__(self, text, row):
+    def __init__(self, quiz_screen, text):
+        self.quiz_screen: QuizScreen = quiz_screen
+
         self.checked = tkinter.IntVar(None, 0)
         self.answer_text = text
 
-        self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked),
-                               parent=constants.quiz_screen.answer_container, row=row)
+        self.object = TkObject(tkinter.Checkbutton(text=text, command=self.clicked, variable=self.checked), True,
+                               quiz_screen.answer_container)
 
         self.previous_answer = self.checked.get()
 
     def clicked(self):
         answer = self.checked.get()
 
-        question_type = constants.question_selector.get_current_question().question_type
+        question_type = self.quiz_screen.question_selector.get_current_question().question_type
 
         on = answer == 1
 
         if on:
-            constants.quiz_screen.answer_checked = True
+            self.quiz_screen.answer_checked = True
         else:
             one_on = False
 
-            for other_object in constants.quiz_screen.answer_objects:
+            for other_object in self.quiz_screen.answer_objects:
                 if other_object.checked.get() == 1:
                     one_on = True
 
                     break
 
             if not one_on:
-                constants.quiz_screen.answer_checked = False
+                self.quiz_screen.answer_checked = False
 
-        if constants.quiz_screen.ready_for_next_question:
+        if self.quiz_screen.ready_for_next_question:
             self.checked.set(self.previous_answer)
 
             return
 
-        for other_answer in constants.quiz_screen.answer_objects:
+        for other_answer in self.quiz_screen.answer_objects:
             if not on or other_answer == self or question_type != 1:
                 continue
 
             other_answer.checked.set(0)
 
-        constants.quiz_screen.set_submit_visibility()
+        self.quiz_screen.set_submit_visibility()
 
         self.previous_answer = answer
 
 
 # The quiz GUI
 class QuizScreen:
-    def __init__(self):
+    def __init__(self, gui, window):
         self.input_entry = None
+        self.gui = gui
+        self.window = window
 
         self.screen = TkObject(tkinter.Frame())
 
         self.welcome_username_text = tkinter.StringVar(None, "Welcome, INSERT NAME HERE")
-        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), visible=False,
-                                       parent=self.screen, sticky="NW")
+        self.username_label = TkObject(tkinter.Label(textvariable=self.welcome_username_text), False, self.screen,
+                                       tkinter.NW)
 
-        self.answer_container = TkObject(tkinter.Frame(), visible=False, parent=self.screen)
+        self.answer_container = TkObject(tkinter.Frame(), False, self.screen)
 
         self.question_text = tkinter.StringVar(None, "(0/0) THIS IS PLACEHOLDER TEXT, YAY!")
-        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"),
-                                       visible=False,
-                                       parent=self.screen)
+        self.question_label = TkObject(tkinter.Label(textvariable=self.question_text, font="{Arial Black} 11"), False,
+                                       self.screen)
 
         self.submit_button_text = tkinter.StringVar(None, "Submit answer")
         self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer),
-                                      visible=False, parent=self.screen)
+                                      False, self.screen)
 
         self.result_label_text = tkinter.StringVar(None, "UNKNOWN RESULT")
-        self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), visible=False,
-                                     parent=self.screen)
+        self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), False, self.screen)
 
         self.answer_objects = []
         self.entry_text = None
+
+        self.question_selector = None
 
         self.clicked_entry = False
 
@@ -495,7 +469,7 @@ class QuizScreen:
 
         return len(answer_text) > 0 and self.clicked_entry
 
-    def clear_entry_text(self, _ignore=None):
+    def clear_entry_text(self, *args):
         if self.clicked_entry:
             return
 
@@ -503,22 +477,21 @@ class QuizScreen:
 
         self.entry_text.set("")
 
-    def submit_answer(self, _ignore=None):
+    def submit_answer(self, *args):
         if self.ready_for_next_question:
             self.ready_for_next_question = False
             self.submit_button_text.set("Submit answer")
 
             # Quiz finished
-            if not constants.question_selector.next_question():
+            if not self.question_selector.next_question():
                 user_path = constants.main_path + "\\" + constants.username
-                create_folder_at_path(user_path)
+                constants.create_folder_at_path(user_path)
 
                 print(user_path, self.current_results)
-                # id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
+                #id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
                 date = datetime.now()
-                name = str(date.day) + "_" + str(date.month) + "_" + str(date.year) + "-" + str(date.hour) + "_" + str(
-                    date.minute) + "_" + str(date.second)
-                data = open(user_path + "\\" + str(name) + ".sav", "w")
+                id = str(date.day) + "_" + str(date.month) + "_" + str(date.year) + "-" + str(date.hour) + "_" + str(date.minute) + "_" + str(date.second)
+                data = open(user_path + "\\" + str(id) + ".sav", "w")
 
                 data.write(json.dumps(self.current_results))
 
@@ -527,17 +500,17 @@ class QuizScreen:
                 self.answer_container.set_visible(False)
                 self.submit_button.set_visible(False)
                 self.result_label.set_visible(False)
-                constants.question_selector.reset()
-                constants.start_screen.switch_to_main_screen()
+                self.question_selector.reset()
+                self.gui.start_screen.switch_to_main_screen()
 
                 # reset quiz values
-                for name, value in constants.default_quiz_values.items():
+                for name, value in self.gui.default_quiz_values.items():
                     setattr(self, name, value)
 
                 return
 
-            self.last_question = constants.question_selector.current_question >= len(
-                constants.question_selector.preset_questions) - 1
+            self.last_question = self.question_selector.current_question >= len(
+                self.question_selector.preset_questions) - 1
 
             self.update_quiz()
 
@@ -546,7 +519,7 @@ class QuizScreen:
         if not self.answer_checked:
             return
 
-        question: Question = constants.question_selector.get_current_question()
+        question: Question = self.question_selector.get_current_question()
 
         if not question:
             return
@@ -615,10 +588,10 @@ class QuizScreen:
 
         self.ready_for_next_question = True
 
-    def set_submit_visibility(self, _ignore=None, _ignore2=None, _ignore3=None):
+    def set_submit_visibility(self, *args):
         submit_visible = False
 
-        if constants.question_selector.get_current_question().question_type == 3:
+        if self.question_selector.get_current_question().question_type == 3:
             submit_visible = self.is_answer_input_valid()
         else:
             for other_answer in self.answer_objects:
@@ -630,7 +603,7 @@ class QuizScreen:
         self.submit_button.set_visible(submit_visible)
 
     def start_quiz(self):
-        constants.question_selector.setup()
+        self.window.question_selector.setup()
 
         self.update_quiz()
 
@@ -646,11 +619,11 @@ class QuizScreen:
         if not self.current_results:
             self.current_results = []
 
-        current_question: Question = constants.question_selector.get_current_question()
+        current_question: Question = self.question_selector.get_current_question()
 
         self.question_text.set(
-            "(" + str(constants.question_selector.current_question + 1) + "/" + str(
-                len(constants.question_selector.preset_questions)) + ") " +
+            "(" + str(self.question_selector.current_question + 1) + "/" + str(
+                len(self.question_selector.preset_questions)) + ") " +
             current_question.question_text
         )
 
@@ -659,17 +632,13 @@ class QuizScreen:
         question_type = current_question.question_type
 
         if question_type == 1 or question_type == 2:
-            row = 1
-
             for answer in current_question.possible:
-                self.answer_objects.append(AnswerObject(answer, row))
-
-                row += 1
+                self.answer_objects.append(AnswerObject(self, answer))
         else:
             self.entry_text = tkinter.StringVar(None, "Enter your answer here")
             self.last_entry_text = self.entry_text.get()
 
-            self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), parent=self.answer_container, row=1)
+            self.input_entry = TkObject(tkinter.Entry(textvariable=self.entry_text), True, self.answer_container)
 
             self.answer_objects.append(
                 self.input_entry)
@@ -690,21 +659,24 @@ class QuizScreen:
         print("H")
 
 
-# The class that links all the GUI together
+# The class that links all of the GUI together
 class GameGui:
-    def __init__(self):
+    def __init__(self, window):
         self.playing = False
 
-        self.start_screen = StartScreen()
-        constants.start_screen = self.start_screen
+        self.window = window
 
-        self.quiz_screen = QuizScreen()
-        constants.quiz_screen = self.quiz_screen
+        self.start_screen = StartScreen(self, window)
+        self.quiz_screen = QuizScreen(self, window)
+
+        self.question_selector = None
 
         self.default_quiz_values = {}
-        constants.default_quiz_values = self.default_quiz_values
 
     def setup(self):
+        self.question_selector: QuestionSelector = self.window.question_selector
+        self.quiz_screen.question_selector = self.window.question_selector
+
         # Grabs the default values from the quiz to be used for resetting the quiz later on
         for name in dir(self.quiz_screen):
             value = getattr(self.quiz_screen, name)
@@ -716,7 +688,10 @@ class GameGui:
 
 # The class that decides what questions to be used and in what order
 class QuestionSelector:
-    def __init__(self):
+    def __init__(self, window):
+        self.gui = window.gui
+        self.window = window
+
         self.current_question = None
         self.remaining_questions = None
 
@@ -776,34 +751,28 @@ class Quiz(tkinter.Tk):
     def __init__(self):
         super().__init__()
 
-        constants.window = self
-
         self.title("The almighty quiz")
         self.geometry("500x500")
         self.resizable(False, False)
-
-        #self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
 
         self.gui = self.create_gui()
         constants.gui = self.gui
 
         self.question_selector = self.create_question_selector()
-        constants.question_selector = self.question_selector
 
-        constants.gui.setup()
+        self.gui.setup()
 
     def create_gui(self):
-        return GameGui()
+        return GameGui(self)
 
     def create_question_selector(self):
-        return QuestionSelector()
+        return QuestionSelector(self)
 
 
 # The program starts here
 if __name__ == '__main__':
     # OS system path (apparently works cross-platform too)
-    create_folder_at_path(constants.main_path)
+    constants.create_folder_at_path(constants.main_path)
 
     quiz = Quiz()
 
