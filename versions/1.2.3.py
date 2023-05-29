@@ -202,16 +202,13 @@ class TkObject:
         del self
 
 
-class SummaryCheckButton:
-    def __init__(self, checked, answer, colour):
-        self.checked_num = checked and 1 or 0
-        self.checked = tkinter.IntVar(constants.summary_window, self.checked_num)
+class SummaryOption:
+    def __init__(self, name, path):
+        self.name = name
+        self.path = path
 
-        self.object = tkinter.Checkbutton(constants.summary_window, text=answer, command=self.clicked, variable = self.checked)
-        self.object.config(fg=colour)
-
-    def clicked(self):
-        self.checked.set(self.checked_num)
+        self.object = TkObject(tkinter.Button(constants.gui.start_screen.summary_scroll_frame, text=name),
+                               parent=constants.gui.start_screen.summary_screen)
 
 
 # The 'main menu' of the quiz. Used for getting the user's name
@@ -439,15 +436,15 @@ class StartScreen:
 
         question_text = data[0]
         question_type = data[1]
-        correct = data[2]
-        answers = data[3]
-        input_answers = data[4]
-        mid_answers = data[5]
-        correct_answers = data[6]
+        answer_type = data[2]
+        correct = data[3]
+        answers = data[4]
+        input_answers = data[5]
+        mid_answers = data[6]
+        correct_answers = data[7]
+        incorrect_answers = data[8]
 
-        answer_length = str(len(answers))
-
-        self.summary_question_text.set("(" + str(i + 1) + "/" + answer_length + question_text)
+        self.summary_question_text.set(question_text)
 
         if correct:
             self.summary_result_text.set("Correct!")
@@ -465,19 +462,32 @@ class StartScreen:
 
             entry.pack()
         else:
+            single_choice = answer_type == 2
+            one_correct = False
+
             for answer in answers:
-                checked = answer in input_answers
+                if answer in correct_answers:
+                    one_correct = True
 
-                in_correct = answer in correct_answers
-
-                correct = checked and in_correct or not checked and not in_correct
+            for answer in answers:
+                correct = (answer in correct_answers) or single_choice and one_correct
                 mid = answer in mid_answers
 
-                checkbox = SummaryCheckButton(checked, answer, mid and "orange" or correct and "green" or "red")
+                answer_was_checked = (answer in input_answers) and 1 or 0
+                checked_variable = tkinter.IntVar(constants.summary_window, answer_was_checked)
 
-                self.summary_answer_objects.append(checkbox.object)
+                print(answer, answer_was_checked)
 
-                checkbox.object.pack()
+                #checked_variable.trace("w", lambda *args: checked_variable.set(answer_was_checked))
+
+                checkbox = tkinter.Checkbutton(constants.summary_window, text=answer, command=lambda: checked_variable.set(answer_was_checked), variable=checked_variable)
+                checkbox.config(fg=mid and "orange" or correct and "green" or "red")
+
+                print(answer, answer_was_checked)
+
+                self.summary_answer_objects.append(checkbox)
+
+                checkbox.pack()
 
         self.summary_result_label.pack_forget()
         self.summary_next_button.pack_forget()
@@ -525,7 +535,7 @@ class StartScreen:
 
         self.change_summary_question(0, data)
 
-        #new_window.mainloop()
+        new_window.mainloop()
 
     # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
@@ -778,7 +788,7 @@ class QuizScreen:
         correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(
             question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
-        self.current_results.append((question.question_text, question_type, correct, question.possible, answers, mid_answers, question.correct))
+        self.current_results.append((question.question_text, question_type, answer_type, correct, question.possible, answers, mid_answers, correct_answers, incorrect_answers))
 
         self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
 
