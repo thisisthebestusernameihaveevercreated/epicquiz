@@ -33,14 +33,11 @@ class GameConstants:
         self.default_quiz_values = None
         self.questions = [
             Question(
-                "How tall is Mount Everest?",  # Question text
-                1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
-                2,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
-                ["9,046 metres", "26,435 feet", "8,849 metres", "7,846 metres", "29,032 feet", "6,124 metres"],  # Possible answers (for keyboard input answers
-                [2, 4]  # Correct answers (indexes of correct answers)
-            ),
-            Question(
-                shj8tehu9teh09teihjhj ERROR ERROR CONTINUE NEX TTIME
+                "What is the correct answer to this question?",  # Question text
+                2,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
+                1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
+                ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
+                [0, 3]  # Correct answers (indexes of correct answers)
             )
         ]
 
@@ -71,8 +68,6 @@ class GameConstants:
         # Used for determining the amount of questions in loaded result data
         self.answer_length = None
 
-        self.summary_window_class = None
-
 
 constants = GameConstants()
 
@@ -86,17 +81,6 @@ def create_folder_at_path(path):
         return
 
     print("Folder at " + path + " already exists")
-
-
-# Destroys the current summary window and any related objects
-def destroy_summary_window():
-    if constants.summary_window:
-        constants.summary_window.destroy()
-        constants.summary_window = None
-
-    if constants.summary_window_class:
-        del constants.summary_window_class
-        constants.summary_window_class = None
 
 
 # A custom TK object class that I use to create my GUI objects. It just makes it easier for me to do certain things
@@ -209,110 +193,11 @@ class SummaryCheckButton:
         self.checked_num = checked and 1 or 0
         self.checked = tkinter.IntVar(constants.summary_window, self.checked_num)
 
-        self.object = tkinter.Checkbutton(constants.summary_window, text=answer, command=self.clicked,
-                                          variable=self.checked)
+        self.object = tkinter.Checkbutton(constants.summary_window, text=answer, command=self.clicked, variable = self.checked)
         self.object.config(fg=colour)
 
     def clicked(self):
         self.checked.set(self.checked_num)
-
-
-# Similar to the SummaryCheckButton and AnswerObject classes. Used for storing local variables for the summary
-# selector buttons
-class SummaryScrollObject:
-    def __init__(self, file, scroller):
-        self.file_path = str(file.path)
-        self.file_name = str(file.name).replace(".sav", "")
-
-        self.minus_index = self.file_name.index("-")
-        self.date = self.file_name[0:self.minus_index].replace("_", "/")
-        self.time = self.file_name[self.minus_index + 1:len(self.file_name)].replace("_", ":")
-
-        self.file_name = ""
-        self.i = 0
-        for num in self.date.split("/"):
-            self.file_name += (self.i != 0 and "/" or "") + num.zfill(2)
-            self.i += 1
-
-        self.file_name += " - "
-
-        self.i = 0
-
-        self.end_m = None
-
-        for num in self.time.split(":"):
-            if self.i == 0 and not self.end_m:
-                inum = int(num)
-                if inum > 12:
-                    num = str(inum - 12)
-                    self.end_m = "PM"
-                else:
-                    self.end_m = "AM"
-
-            self.file_name += (self.i != 0 and ":" or "") + num.zfill(2)
-            self.i += 1
-
-        self.file_name += " " + self.end_m
-
-        self.option = tkinter.Button(scroller.summary_scroll_frame, text=self.file_name,
-                                     command=lambda: constants.start_screen.open_summary_by_path(scroller.username,
-                                                                                                 self.file_path,
-                                                                                                 self.file_name))
-        self.option.pack()
-
-
-# A class that is used for creating the summary selector window. It may not be needed for the local variable issue,
-# but it's good to have here anyway
-class SummaryScroller:
-    def __init__(self):
-        self.username = constants.start_screen.stored_username
-        self.window = tkinter.Tk()
-
-        constants.summary_window = self.window
-
-        self.window.title("Quiz summary")
-        self.window.geometry("500x500")
-        self.window.resizable(False, False)
-
-        self.window.protocol("WM_DELETE_WINDOW", lambda: constants.start_screen.close_summaries(False, False))
-
-        self.title_text = tkinter.Label(self.window, text=self.username + "'s saved answers", font="{Arial Black 11}")
-        self.title_text.pack()
-
-        self.back_button = tkinter.Button(self.window, text="Back to main menu",
-                                          command=lambda: constants.start_screen.close_summaries(True, False))
-        self.back_button.pack()
-
-        self.top_hold = tkinter.Frame(self.window)
-        self.top_hold.pack()
-
-        self.summary_scroll_hold = tkinter.Frame(self.window)
-        self.summary_scroll_hold.pack()
-
-        self.summary_scroll_canvas = tkinter.Canvas(self.summary_scroll_hold)
-        self.summary_scroll = tkinter.Scrollbar(self.window, orient="vertical",
-                                                command=self.summary_scroll_canvas.yview)
-
-        self.summary_scroll_frame = tkinter.Frame(self.summary_scroll_canvas)
-        self.summary_scroll_frame.bind(
-            "<Configure>",
-            lambda e: self.summary_scroll_canvas.configure(
-                scrollregion=self.summary_scroll_canvas.bbox("all")
-            )
-        )
-
-        self.summary_scroll_canvas.create_window((0, 0), window=self.summary_scroll_frame)
-        self.summary_scroll_canvas.configure(yscrollcommand=self.summary_scroll.set)
-
-        self.summary_scroll_canvas.pack(side="left", fill="both", expand=True)
-        self.summary_scroll.pack(side="right", fill="y")
-
-        self.user_path = constants.main_path + "\\" + self.username
-
-        self.scroll_objects = []
-
-        for file in os.scandir(self.user_path):
-            self.scroll_objects.append(SummaryScrollObject(file, self))
 
 
 # The 'main menu' of the quiz. Used for getting the user's name
@@ -434,7 +319,8 @@ class StartScreen:
 
         if constants.summary_window:
             constants.start_screen.summary_answer_objects.clear()
-            destroy_summary_window()
+            constants.summary_window.destroy()
+            constants.summary_window = None
 
         if first_menu:
             self.open_summaries()
@@ -450,7 +336,85 @@ class StartScreen:
         username = self.username_variable.get()
         self.stored_username = username
 
-        constants.summary_window_class = SummaryScroller()
+        new_window = tkinter.Tk()
+
+        constants.summary_window = new_window
+
+        new_window.title("Quiz summary")
+        new_window.geometry("500x500")
+        new_window.resizable(False, False)
+
+        new_window.protocol("WM_DELETE_WINDOW", lambda: self.close_summaries(False, False))
+
+        title_text = tkinter.Label(new_window, text=username + "'s saved answers", font="{Arial Black 11}")
+        title_text.pack()
+
+        back_button = tkinter.Button(new_window, text="Back to main menu",
+                                     command=lambda: self.close_summaries(True, False))
+        back_button.pack()
+
+        top_hold = tkinter.Frame(new_window)
+        top_hold.pack()
+
+        summary_scroll_hold = tkinter.Frame(new_window)
+        summary_scroll_hold.pack()
+
+        summary_scroll_canvas = tkinter.Canvas(summary_scroll_hold)
+        summary_scroll = tkinter.Scrollbar(new_window, orient="vertical", command=summary_scroll_canvas.yview)
+
+        summary_scroll_frame = tkinter.Frame(summary_scroll_canvas)
+        summary_scroll_frame.bind(
+            "<Configure>",
+            lambda e: summary_scroll_canvas.configure(
+                scrollregion=summary_scroll_canvas.bbox("all")
+            )
+        )
+
+        summary_scroll_canvas.create_window((0, 0), window=summary_scroll_frame)
+        summary_scroll_canvas.configure(yscrollcommand=summary_scroll.set)
+
+        summary_scroll_canvas.pack(side="left", fill="both", expand=True)
+        summary_scroll.pack(side="right", fill="y")
+
+        user_path = constants.main_path + "\\" + username
+
+        for file in os.scandir(user_path):
+            file_path = str(file.path)
+            file_name = str(file.name).replace(".sav", "")
+
+            minus_index = file_name.index("-")
+            date = file_name[1:minus_index].replace("_", "/")
+            time = file_name[minus_index + 1:len(file_name)].replace("_", ":")
+
+            file_name = ""
+            i = 0
+            for num in date.split("/"):
+                file_name += (i != 0 and "/" or "") + num.zfill(2)
+                i += 1
+
+            file_name += " - "
+
+            i = 0
+
+            end_m = None
+
+            for num in time.split(":"):
+                if i == 0 and not end_m:
+                    inum = int(num)
+                    if inum > 12:
+                        num = str(inum - 12)
+                        end_m = "PM"
+                    else:
+                        end_m = "AM"
+
+                file_name += (i != 0 and ":" or "") + num.zfill(2)
+                i += 1
+
+            file_name += " " + end_m
+
+            option = tkinter.Button(summary_scroll_frame, text=file_name,
+                                    command=lambda: self.open_summary_by_path(username, file_path, file_name))
+            option.pack()
 
     # Updates the result summary question data
     def change_summary_question(self, change, data):
@@ -520,7 +484,8 @@ class StartScreen:
     # Opens a new summary window and loads the data, then updates the window
     def open_summary_by_path(self, username, file_path, file_name):
         if constants.summary_window:
-            destroy_summary_window()
+            constants.summary_window.destroy()
+            constants.summary_window = None
 
         new_window = tkinter.Tk()
 
@@ -537,6 +502,8 @@ class StartScreen:
 
         question_label.pack()
 
+        print("YAY!!!")
+
         result_label_text = tkinter.StringVar(new_window, "UNKNOWN RESULT")
         result_label = tkinter.Label(new_window, textvariable=result_label_text)
 
@@ -550,16 +517,14 @@ class StartScreen:
 
         constants.answer_length = len(data)
 
-        self.summary_back_button = tkinter.Button(new_window, text="Back",
-                                                  command=lambda: self.change_summary_question(-1, data))
-        self.summary_next_button = tkinter.Button(new_window, text="Next",
-                                                  command=lambda: self.change_summary_question(1, data))
+        self.summary_back_button = tkinter.Button(new_window, text="Back", command=lambda: self.change_summary_question(-1, data))
+        self.summary_next_button = tkinter.Button(new_window, text="Next", command=lambda: self.change_summary_question(1, data))
 
         self.change_summary_question(0, data)
 
     # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
-        if constants.playing or self.play_debounce or not self.play_button.visible or constants.summary_window:
+        if constants.playing or self.play_debounce or not self.play_button.visible:
             return
 
         if not self.acceptable_username:
@@ -674,9 +639,7 @@ class QuizScreen:
         self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer),
                                       visible=False, parent=self.screen)
 
-        self.summary_button = TkObject(
-            tkinter.Button(text="View result summary", command=lambda: self.submit_answer("SUMMARY")), visible=False,
-            parent=self.screen)
+        self.summary_button = TkObject(tkinter.Button(text="View result summary",command=lambda: self.submit_answer("SUMMARY")), visible=False, parent=self.screen)
 
         self.result_label_text = tkinter.StringVar(None, "UNKNOWN RESULT")
         self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), visible=False,
@@ -818,8 +781,7 @@ class QuizScreen:
         correct = len(incorrect_answers) == 0 and (answer_type == 1 and correct_length == len(
             question_answers) or answer_type == 2 and correct_length >= 1 or answer_type == 3 and correct_length > 1)
 
-        self.current_results.append(
-            (question.question_text, question_type, correct, question.possible, answers, mid_answers, question.correct))
+        self.current_results.append((question.question_text, question_type, correct, question.possible, answers, mid_answers, question.correct))
 
         self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
         self.summary_button.set_visible(self.last_question)
@@ -966,7 +928,7 @@ class QuestionSelector:
 
             self.preset_questions.append(question)
 
-    # Gets a unique question from all the possible questions in the quiz
+    # Gets a unique question from all of the possible questions in the quiz
     def obtain_unique_question(self):
         if len(self.remaining_questions) == 0:
             return
@@ -1036,7 +998,7 @@ class Quiz(tkinter.Tk):
 
         constants.gui.setup()
 
-    # Runs when the main window close button is pressed. Attempts to close all windows
+    # Runs when the main window close button is pressed
     def close_window(self):
         if not messagebox.askyesno("Quit", "Are you sure you would like to quit The Almighty Quiz?"):
             return
@@ -1044,7 +1006,8 @@ class Quiz(tkinter.Tk):
         self.destroy()
 
         if constants.summary_window:
-            destroy_summary_window()
+            constants.summary_window.destroy()
+            constants.summary_window = None
 
 
 # The program starts here
@@ -1054,5 +1017,4 @@ if __name__ == '__main__':
 
     quiz = Quiz()
 
-    # Starts the quiz
     quiz.mainloop()
