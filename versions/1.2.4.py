@@ -37,26 +37,37 @@ class GameConstants:
                 2,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 1,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
                 ["Yes", "No", "Germany", "WWII"],  # Possible answers (for keyboard input answers
+                # put _ before the text to make it case-sensitive)
                 [0, 3]  # Correct answers (indexes of correct answers)
+            ),
+            Question(
+                "This is the second question!",
+                1,
+                2,
+                ["Yeah", "No", "That wasn't even a question", "Ok", "Why not?", "No, it's the third"],
+                [2, 4]
+            ),
+            Question(
+                "How many of you are there?",
+                3,
+                1,
+                ["1"],
+                [0]
             )
         ]
 
-        # Give the questions unique IDs
         for i in range(0, len(self.questions)):
             self.questions[i].id = i
 
-        # Variables that I use across the code
         self.playing = False
         self.username = None
 
         self.tk_objects = []
 
-        # Directory for saved results
         self.main_path = platformdirs.user_data_dir("AnF2023Quiz", "FHSAnF")
 
         self.in_summary = False
 
-        # Useful GUI variables
         self.gui = None
         self.quiz_screen = None
         self.start_screen = None
@@ -65,14 +76,10 @@ class GameConstants:
 
         self.summary_window = None
 
-        # Used for determining the amount of questions in loaded result data
-        self.answer_length = None
-
 
 constants = GameConstants()
 
 
-# Used for creating a folder at a specified path if it doesn't already exist
 def create_folder_at_path(path):
     if not os.path.isdir(path):
         print("Created folder " + path)
@@ -106,9 +113,17 @@ class TkObject:
 
         self.sticky = sticky
 
-        self.visible = visible
+        self.visible = visible  # len(args) < 1 or args[0]
 
         self.current_row = 0
+
+        # if len(args) > 3:
+        #    if args[3]:
+        #        self.pady = args[3]
+
+        # if len(args) > 4:
+        #    if args[4]:
+        #        self.padx = args[4]
 
         if parent:
             self.set_parent(parent)
@@ -187,7 +202,6 @@ class TkObject:
         del self
 
 
-# Similar to the AnswerObject class. Used for the result summary checkboxes to keep track of their saved answers
 class SummaryCheckButton:
     def __init__(self, checked, answer, colour):
         self.checked_num = checked and 1 or 0
@@ -244,12 +258,9 @@ class StartScreen:
         self.summary_back_button = None
         self.summary_next_button = None
         self.summary_result_label = None
-        self.summary_entry = None
-        self.summary_entry_variable = None
 
         self.summary_answer_objects = []
 
-    # Clears the username text if it's still set to its default value
     def focus_username(self, _ignore=None):
         if self.focused_username:
             return
@@ -258,7 +269,6 @@ class StartScreen:
 
         self.focused_username = True
 
-    # Checks whether the current username is acceptable
     def on_username_changed(self, _ignore=None, _ignore2=None, _ignore3=None):
         username = self.username_variable.get()
 
@@ -268,13 +278,11 @@ class StartScreen:
 
         self.set_play_text()
 
-    # Set the play and summary buttons' respective visibilities
     def set_play_text(self):
         self.play_button.set_visible(self.acceptable_username)
         self.summary_button.set_visible(
             self.acceptable_username and os.path.exists(constants.main_path + "\\" + self.username_variable.get()))
 
-    # Resets the play button debounce
     def reset_play_debounce(self):
         self.play_debounce = False
 
@@ -292,14 +300,11 @@ class StartScreen:
 
         self.screen.set_visible(False)
 
-        constants.quiz_screen.summary_button.set_visible(False)
-
         constants.quiz_screen.screen.set_visible(True)
         constants.quiz_screen.username_label.set_visible(True)
 
         constants.quiz_screen.screen.after(2000, lambda: self.switch_to_quiz(2))
 
-    # Switches back from the quiz screen to the start screen (main menu)
     def switch_to_main_screen(self):
         constants.in_summary = False
 
@@ -310,7 +315,6 @@ class StartScreen:
         self.screen.set_visible(True)
         constants.quiz_screen.screen.set_visible(False)
 
-    # Closes the summary window
     def close_summaries(self, instant, first_menu):
         if not instant and not messagebox.askyesno("Quit", first_menu and "Are you sure you want to exit these saved "
                                                                           "results and go back to the summary menu?"
@@ -318,7 +322,6 @@ class StartScreen:
             return
 
         if constants.summary_window:
-            constants.start_screen.summary_answer_objects.clear()
             constants.summary_window.destroy()
             constants.summary_window = None
 
@@ -328,7 +331,6 @@ class StartScreen:
             self.screen.set_visible(True)
             self.summary_wait_text.set_visible(False)
 
-    # Opens the summary window
     def open_summaries(self):
         self.screen.set_visible(False)
         self.summary_wait_text.set_visible(True)
@@ -412,11 +414,13 @@ class StartScreen:
 
             file_name += " " + end_m
 
+            # data = open(file_path, "r")
+            # data = json.loads(data.readline())
+
             option = tkinter.Button(summary_scroll_frame, text=file_name,
                                     command=lambda: self.open_summary_by_path(username, file_path, file_name))
             option.pack()
 
-    # Updates the result summary question data
     def change_summary_question(self, change, data):
         i = self.summary_index + change
         length = len(data)
@@ -425,8 +429,8 @@ class StartScreen:
         elif i < 0:
             i += length
 
-        for answer_object in self.summary_answer_objects:
-            answer_object.destroy()
+        for answer in self.summary_answer_objects:
+            answer.destroy()
 
         self.summary_answer_objects.clear()
 
@@ -441,7 +445,9 @@ class StartScreen:
         mid_answers = data[5]
         correct_answers = data[6]
 
-        self.summary_question_text.set("(" + str(i + 1) + "/" + str(constants.answer_length) + ") " + question_text)
+        answer_length = str(len(answers))
+
+        self.summary_question_text.set("(" + str(i + 1) + "/" + answer_length + question_text)
 
         if correct:
             self.summary_result_text.set("Correct!")
@@ -451,13 +457,13 @@ class StartScreen:
             self.summary_result_label.config(fg="red")
 
         if question_type == 3:
-            self.summary_entry_variable = tkinter.StringVar(constants.summary_window, correct and answers[0])
-            self.summary_entry = tkinter.Entry(constants.summary_window, textvariable=self.summary_entry_variable)
-            self.summary_entry.configure(state="disabled")
+            entry_variable = tkinter.StringVar(constants.summary_window, correct and answers[0])
+            entry = tkinter.Entry(constants.summary_window, textvariable=entry_variable)
+            entry.configure(state="disabled")
 
-            self.summary_answer_objects.append(self.summary_entry)
+            self.summary_answer_objects.append(entry)
 
-            self.summary_entry.pack()
+            entry.pack()
         else:
             for answer in answers:
                 checked = answer in input_answers
@@ -477,11 +483,10 @@ class StartScreen:
         self.summary_next_button.pack_forget()
         self.summary_back_button.pack_forget()
 
+        self.summary_result_label.pack()
         self.summary_next_button.pack()
         self.summary_back_button.pack()
-        self.summary_result_label.pack()
 
-    # Opens a new summary window and loads the data, then updates the window
     def open_summary_by_path(self, username, file_path, file_name):
         if constants.summary_window:
             constants.summary_window.destroy()
@@ -515,12 +520,12 @@ class StartScreen:
         data = open(file_path, "r")
         data = json.loads(data.readline())
 
-        constants.answer_length = len(data)
-
         self.summary_back_button = tkinter.Button(new_window, text="Back", command=lambda: self.change_summary_question(-1, data))
         self.summary_next_button = tkinter.Button(new_window, text="Next", command=lambda: self.change_summary_question(1, data))
 
         self.change_summary_question(0, data)
+
+        #new_window.mainloop()
 
     # This is for when the play button has been pressed on the main menu
     def play_game(self, *args):
@@ -579,7 +584,6 @@ class AnswerObject:
 
         self.previous_answer = self.checked.get()
 
-    # Updates the quiz when a checkbox is checked/unchecked
     def clicked(self):
         answer = self.checked.get()
 
@@ -639,8 +643,6 @@ class QuizScreen:
         self.submit_button = TkObject(tkinter.Button(textvariable=self.submit_button_text, command=self.submit_answer),
                                       visible=False, parent=self.screen)
 
-        self.summary_button = TkObject(tkinter.Button(text="View result summary",command=lambda: self.submit_answer("SUMMARY")), visible=False, parent=self.screen)
-
         self.result_label_text = tkinter.StringVar(None, "UNKNOWN RESULT")
         self.result_label = TkObject(tkinter.Label(textvariable=self.result_label_text), visible=False,
                                      parent=self.screen)
@@ -659,14 +661,12 @@ class QuizScreen:
 
         self.current_results = None
 
-    # Determines whether an entry box has valid text
     def is_answer_input_valid(self):
         answer_text = self.entry_text.get()
         self.last_entry_text = answer_text
 
         return len(answer_text) > 0 and self.clicked_entry
 
-    # Clears the current entry box text
     def clear_entry_text(self, _ignore=None):
         if self.clicked_entry:
             return
@@ -675,7 +675,6 @@ class QuizScreen:
 
         self.entry_text.set("")
 
-    # Submits the user's current answer. Switches to the main menu/summary screen if at the end of the quiz
     def submit_answer(self, _ignore=None):
         if self.ready_for_next_question:
             self.ready_for_next_question = False
@@ -687,6 +686,7 @@ class QuizScreen:
                 create_folder_at_path(user_path)
 
                 print(user_path, self.current_results)
+                # id = len([name for name in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, name))])
                 date = datetime.now()
                 name = str(date.day) + "_" + str(date.month) + "_" + str(date.year) + "-" + str(date.hour) + "_" + str(
                     date.minute) + "_" + str(date.second)
@@ -702,12 +702,9 @@ class QuizScreen:
                 constants.question_selector.reset()
                 constants.start_screen.switch_to_main_screen()
 
-                # Resets the quiz values
+                # reset quiz values
                 for name, value in constants.default_quiz_values.items():
                     setattr(self, name, value)
-
-                if _ignore == "SUMMARY":
-                    constants.start_screen.open_summaries()
 
                 return
 
@@ -784,7 +781,6 @@ class QuizScreen:
         self.current_results.append((question.question_text, question_type, correct, question.possible, answers, mid_answers, question.correct))
 
         self.submit_button_text.set(self.last_question and "Finish quiz" or "Next question")
-        self.summary_button.set_visible(self.last_question)
 
         if correct:
             self.result_label_text.set("Correct!")
@@ -797,7 +793,6 @@ class QuizScreen:
 
         self.ready_for_next_question = True
 
-    # Sets the submit button's visibility based on if the user has entered a valid answer
     def set_submit_visibility(self, _ignore=None, _ignore2=None, _ignore3=None):
         submit_visible = False
 
@@ -812,13 +807,11 @@ class QuizScreen:
 
         self.submit_button.set_visible(submit_visible)
 
-    # Sets up the quiz
     def start_quiz(self):
         constants.question_selector.setup()
 
         self.update_quiz()
 
-    # Clears the answer objects
     def clear_screen(self):
         self.answer_container.clear_children()
         self.answer_objects.clear()
@@ -866,8 +859,7 @@ class QuizScreen:
             self.entry_text.trace("w", self.set_submit_visibility)
 
         self.submit_button.row = row
-        self.summary_button.row = row + 1
-        self.result_label.row = row + 2
+        self.result_label.row = row + 1
 
         self.question_label.set_visible(True)
 
@@ -892,7 +884,6 @@ class GameGui:
         self.default_quiz_values = {}
         constants.default_quiz_values = self.default_quiz_values
 
-    # Sets up the game GUI. Collects the quiz default values
     def setup(self):
         # Grabs the default values from the quiz to be used for resetting the quiz later on
         for name in dir(self.quiz_screen):
@@ -911,7 +902,6 @@ class QuestionSelector:
 
         self.preset_questions = None
 
-    # Sets up the question selector
     def setup(self):
         self.current_question = 0
 
@@ -928,7 +918,6 @@ class QuestionSelector:
 
             self.preset_questions.append(question)
 
-    # Gets a unique question from all of the possible questions in the quiz
     def obtain_unique_question(self):
         if len(self.remaining_questions) == 0:
             return
@@ -939,11 +928,9 @@ class QuestionSelector:
 
         return question
 
-    # Gets the current question when in the quiz screen
     def get_current_question(self):
         return self.preset_questions and self.preset_questions[self.current_question]
 
-    # Proceeds to the next question in the quiz screen
     def next_question(self):
         next_id = self.current_question + 1
 
@@ -956,7 +943,6 @@ class QuestionSelector:
 
         return next_id
 
-    # Resets the question selector
     def reset(self):
         self.preset_questions.clear()
         self.preset_questions = None
@@ -970,12 +956,10 @@ def create_gui():
     return GameGui()
 
 
-# Creates the question selector
 def create_question_selector():
     return QuestionSelector()
 
 
-# The main quiz handler. Starts the entire program
 class Quiz(tkinter.Tk):
     def __init__(self):
         super().__init__()
@@ -998,7 +982,6 @@ class Quiz(tkinter.Tk):
 
         constants.gui.setup()
 
-    # Runs when the main window close button is pressed
     def close_window(self):
         if not messagebox.askyesno("Quit", "Are you sure you would like to quit The Almighty Quiz?"):
             return
