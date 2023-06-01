@@ -36,8 +36,7 @@ class GameConstants:
                 "How tall is Mount Everest?",  # Question text
                 1,  # Question type (1 for single choice, 2 for multi choice, 3 for keyboard input)
                 2,  # Answer type (1 for all answers need to be correct, 2 for one answer, 3 for more than one answer)
-                # Possible answers (for keyboard input answers):
-                ["9,046 metres", "26,435 feet", "8,849 metres", "7,846 metres", "29,032 feet", "6,124 metres"],
+                ["9,046 metres", "26,435 feet", "8,849 metres", "7,846 metres", "29,032 feet", "6,124 metres"],  # Possible answers (for keyboard input answers
                 [2, 4]  # Correct answers (indexes of correct answers)
             ),
             Question(
@@ -51,8 +50,7 @@ class GameConstants:
                 "What is the deepest point on Earth?",
                 1,
                 2,
-                ["The Dead Sea", "Puerto Rico Trench", "Japan Trench", "Marianna Trench", "Izu-Ogasawara Trench",
-                 "Philipine Trench"],
+                ["The Dead Sea", "Puerto Rico Trench", "Japan Trench", "Marianna Trench", "Izu-Ogasawara Trench", "Phillipine Trench"],
                 [3]
             ),
             Question(
@@ -80,8 +78,7 @@ class GameConstants:
                 "Who is credited for the theory of relativity?",
                 1,
                 2,
-                ["Isaac Newton", "Rosalind Franklin", "Jane Goodall", "Marie Curie", "Nikola Tesla", "Albert Einstein",
-                 "Ernest Rutherford", "Charles Darwin"],
+                ["Isaac Newton", "Rosalind Franklin", "Jane Goodall", "Marie Curie", "Nikola Tesla", "Albert Einstein", "Ernest Rutherford", "Charles Darwin"],
                 [5]
             ),
             Question(
@@ -95,7 +92,7 @@ class GameConstants:
                 "Who painted the Mona Lisa?",
                 1,
                 2,
-                ["Michelangelo", "Leonardo Da Vinci", "El Greco", "Bellini", "Titian"],
+                ["Michaelangelo", "Leonardo Da Vinci", "El Greco", "Bellini", "Titian"],
                 [1]
             ),
             Question(
@@ -109,8 +106,7 @@ class GameConstants:
                 "What is the bestselling game of all time? (as of May 2023)",
                 1,
                 2,
-                ["Grand Theft Auto V", "Skyrim", "Minecraft", "Roblox", "Superhot", "Beat Saber", "Terraria", "Tetris",
-                 "Super Mario Bros."],
+                ["Grand Theft Auto V", "Skyrim", "Minecraft", "Roblox", "Superhot", "Beat Saber", "Terraria", "Tetris", "Super Mario Bros."],
                 [2]
             ),
             Question(
@@ -166,52 +162,8 @@ class GameConstants:
                 "What is the correct use of a semicolon? (;)",
                 1,
                 2,
-                ["To join two related independent clauses together", "To have a break in a sentence",
-                 "The same as a comma", "It doesn't exist"],
+                ["To join two related independant clauses together", "To have a break in a sentence", "The same as a comma", "It doesn't exist"]
                 [0]
-            ),
-            Question(
-                "How many countries are recognised by the United Nations? (as of May 2023)",
-                1,
-                2,
-                ["195", "194", "189", "174", "201", "193", "205", "199", "193"],
-                [5]
-            ),
-            Question(
-                "How many states are in the United States? (as of May 2023)",
-                1,
-                2,
-                ["50", "48", "51", "49", "47", "52"],
-                [0]
-            ),
-            Question(
-                "Who was the president of the United States in 1894?",
-                1,
-                2,
-                ["Abraham Lincoln", "Barack Obama", "Franklin D. Roosevelt", "Grover Cleveland", "George Washington",
-                 "Donald Trump", "John F. Kennedy"],
-                [3]
-            ),
-            Question(
-                "What is the highest grossing film as of May 2023?",
-                1,
-                2,
-                ["Avengers: Endgame", "Minions", "Avengers: Infinity-War", "Titanic", "Avatar", "Frozen", "The Lion King"],
-                [4]
-            ),
-            Question(
-                "What year did the first humans land on the Moon?",
-                1,
-                2,
-                ["1963", "1959", "1964", "1969", "1971", "1968", "1936"],
-                [3]
-            ),
-            Question(
-                "How old was Stephen Hawking when he died?",
-                1,
-                2,
-                ["75", "77", "74", "73", "78", "76"],
-                [5]
             )
         ]
 
@@ -245,9 +197,6 @@ class GameConstants:
         self.answer_length = None
 
         self.summary_window_class = None
-
-        # Window resolution
-        self.window_resolution = "700x500"
 
 
 constants = GameConstants()
@@ -396,20 +345,45 @@ class SummaryCheckButton:
 # Similar to the SummaryCheckButton and AnswerObject classes. Used for storing local variables for the summary
 # selector buttons
 class SummaryScrollObject:
-    def __init__(self, file, file_name, scroller):
+    def __init__(self, file, scroller):
         self.file_path = str(file.path)
-        self.file_name = file_name
+        self.file_name = str(file.name).replace(".sav", "")
+
+        self.minus_index = self.file_name.index("-")
+        self.date = self.file_name[0:self.minus_index].replace("_", "/")
+        self.time = self.file_name[self.minus_index + 1:len(self.file_name)].replace("_", ":")
+
+        self.file_name = ""
+        self.i = 0
+        for num in self.date.split("/"):
+            self.file_name += (self.i != 0 and "/" or "") + num.zfill(2)
+            self.i += 1
+
+        self.file_name += " - "
+
+        self.i = 0
+
+        self.end_m = None
+
+        for num in self.time.split(":"):
+            if self.i == 0 and not self.end_m:
+                inum = int(num)
+                if inum > 12:
+                    num = str(inum - 12)
+                    self.end_m = "PM"
+                else:
+                    self.end_m = "AM"
+
+            self.file_name += (self.i != 0 and ":" or "") + num.zfill(2)
+            self.i += 1
+
+        self.file_name += " " + self.end_m
 
         self.option = tkinter.Button(scroller.summary_scroll_frame, text=self.file_name,
                                      command=lambda: constants.start_screen.open_summary_by_path(scroller.username,
                                                                                                  self.file_path,
                                                                                                  self.file_name))
         self.option.pack()
-
-
-# A function that grabs the sort order from an ordered file date tuple
-def get_file_order(x):
-    return x[2]
 
 
 # A class that is used for creating the summary selector window. It may not be needed for the local variable issue,
@@ -422,7 +396,7 @@ class SummaryScroller:
         constants.summary_window = self.window
 
         self.window.title("Quiz summary")
-        self.window.geometry(constants.window_resolution)
+        self.window.geometry("500x500")
         self.window.resizable(False, False)
 
         self.window.protocol("WM_DELETE_WINDOW", lambda: constants.start_screen.close_summaries(False, False))
@@ -462,70 +436,8 @@ class SummaryScroller:
 
         self.scroll_objects = []
 
-        self.ordered_files = []
-
         for file in os.scandir(self.user_path):
-            file_name = file.name.replace(".sav", "")
-            minus_index = file_name.index("-")
-            date = file_name[0:minus_index].replace("_", "/")
-            time = file_name[minus_index + 1:len(file_name)].replace("_", ":")
-
-            day = None
-            month = None
-            year = None
-
-            seconds = None
-            minutes = None
-            hour = None
-
-            file_name = ""
-            i = 0
-            for num in date.split("/"):
-                if i == 0:
-                    day = int(num)
-                elif i == 1:
-                    month = int(num)
-                else:
-                    year = int(num)
-
-                file_name += (i != 0 and "/" or "") + num.zfill(2)
-                i += 1
-
-            file_name += " - "
-
-            i = 0
-
-            end_m = None
-
-            for num in time.split(":"):
-                if i == 0:
-                    seconds = int(num)
-                elif i == 1:
-                    minutes = int(num)
-                else:
-                    hour = int(num)
-
-                if i == 0 and not end_m:
-                    inum = int(num)
-                    if inum > 12:
-                        num = str(inum - 12)
-                        end_m = "PM"
-                    else:
-                        end_m = "AM"
-
-                file_name += (i != 0 and ":" or "") + num.zfill(2)
-                i += 1
-
-            file_name += " " + end_m
-
-            order = (year * 10000000000 + month * 100000000 + day * 1000000 + hour * 10000 + minutes * 100 + seconds)
-
-            self.ordered_files.append((file, file_name, order))
-
-        self.ordered_files.sort(key=get_file_order, reverse=True)
-
-        for x in self.ordered_files:
-            self.scroll_objects.append(SummaryScrollObject(x[0], x[1], self))
+            self.scroll_objects.append(SummaryScrollObject(file, self))
 
 
 # The 'main menu' of the quiz. Used for getting the user's name
@@ -740,7 +652,7 @@ class StartScreen:
         constants.summary_window = new_window
 
         new_window.title("Summary | " + username + " | " + file_name)
-        new_window.geometry(constants.window_resolution)
+        new_window.geometry("500x500")
         new_window.resizable(False, False)
 
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.close_summaries(False, True))
@@ -1169,7 +1081,7 @@ class QuestionSelector:
         self.remaining_questions = constants.questions.copy()
         self.preset_questions = []
 
-        for i in range(0, random.randrange(12, 17)):
+        for i in range(0, random.randrange(8, 13)):
             question = self.obtain_unique_question()
 
             if not question:
@@ -1234,7 +1146,7 @@ class Quiz(tkinter.Tk):
         constants.window = self
 
         self.title("The Almighty Quiz")
-        self.geometry(constants.window_resolution)
+        self.geometry("500x500")
         self.resizable(False, False)
 
         self.protocol("WM_DELETE_WINDOW", self.close_window)
