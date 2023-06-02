@@ -158,7 +158,7 @@ class GameConstants:
             Question(
                 "How do you pronounce GIF?",
                 2,
-                2,
+                3,
                 ["GIF (hard G)", "JIF (soft G)", "Guilt", "Franchise", "Horror"],
                 [0, 1]
             ),
@@ -174,7 +174,7 @@ class GameConstants:
                 "How many countries are recognised by the United Nations? (as of May 2023)",
                 1,
                 2,
-                ["195", "194", "189", "174", "201", "193", "205", "199"],
+                ["195", "194", "189", "174", "201", "193", "205", "199", "193"],
                 [5]
             ),
             Question(
@@ -196,8 +196,7 @@ class GameConstants:
                 "What is the highest grossing film as of May 2023?",
                 1,
                 2,
-                ["Avengers: Endgame", "Minions", "Avengers: Infinity-War", "Titanic", "Avatar", "Frozen",
-                 "The Lion King"],
+                ["Avengers: Endgame", "Minions", "Avengers: Infinity-War", "Titanic", "Avatar", "Frozen", "The Lion King"],
                 [4]
             ),
             Question(
@@ -213,43 +212,6 @@ class GameConstants:
                 2,
                 ["75", "77", "74", "73", "78", "76"],
                 [5]
-            ),
-            Question(
-                "Which is the correct spelling?",
-                1,
-                2,
-                ["Antidisestablishmentanism", "Antidisestalbishmentariansism", "Antidisestabmentarian",
-                 "Antidisestablishmentarianism", "Antidisastablishmentarianism", "Antidisestablishingmentarianism"],
-                [3]
-            ),
-            Question(
-                "When was ChatGPT released to the public for testing?",
-                1,
-                2,
-                ["October 2022", "December 2022", "January 2023", "November 2022", "September 2022"],
-                [3]
-            ),
-            Question(
-                "Which of these VR headsets is the oldest?",
-                1,
-                2,
-                ["Valve Index", "Oculus Quest 1", "Oculus Rift", "Sony PlayStation VR 1", "HTC Vive"],
-                [2]
-            ),
-            Question(
-                "What was the first YouTube channel to hit 100,000,000 subscribers?",
-                1,
-                2,
-                ["PewDiePie", "T-Series", "Cocomelon", "MrBeast", "All of the above", "None of the above"],
-                [1]
-            ),
-            Question(
-                "What is the best tier of marble run?",
-                1,
-                2,
-                ["Tier 11 marble run", "Tier 13 marble run", "Tier 9 marble run", "Marble run tier 13",
-                 "Tier 15 marble run"],
-                [1]
             )
         ]
 
@@ -472,7 +434,13 @@ class SummaryScroller:
                                           command=lambda: constants.start_screen.close_summaries(True, False))
         self.back_button.pack()
 
-        self.summary_scroll_canvas = tkinter.Canvas(self.window)
+        self.top_hold = tkinter.Frame(self.window)
+        self.top_hold.pack()
+
+        self.summary_scroll_hold = tkinter.Frame(self.window)
+        self.summary_scroll_hold.pack()
+
+        self.summary_scroll_canvas = tkinter.Canvas(self.summary_scroll_hold)
         self.summary_scroll = tkinter.Scrollbar(self.window, orient="vertical",
                                                 command=self.summary_scroll_canvas.yview)
 
@@ -539,9 +507,8 @@ class SummaryScroller:
 
                 if i == 0 and not end_m:
                     inum = int(num)
-                    if inum > 11:
-                        if inum > 12:
-                            num = str(inum - 12)
+                    if inum > 12:
+                        num = str(inum - 12)
                         end_m = "PM"
                     else:
                         end_m = "AM"
@@ -1010,7 +977,6 @@ class QuizScreen:
             return
 
         question_type = question.question_type
-        answer_type = question.answer_type
 
         if self.submit_button_text.get() != "Submit answer" or question_type == 3 and not self.is_answer_input_valid():
             return
@@ -1028,6 +994,8 @@ class QuizScreen:
 
             self.input_entry.object.config(state=tkinter.DISABLED)
         else:
+            single = question_type == 1
+
             for answer_object in self.answer_objects:
                 checked = answer_object.checked.get() == 1
                 answer_needed = answer_object.answer_text in question_answers
@@ -1035,8 +1003,9 @@ class QuizScreen:
                 correct = checked == answer_needed
                 mid = False
 
-                if not correct and answer_needed:
-                    mid = True
+                if single and answer_needed:
+                    if not correct:
+                        mid = True
 
                 answer_object.object.object.config(fg=correct and "green" or mid and "orange" or "red")
 
